@@ -20,7 +20,7 @@ public:
     double maestroGetAngle(int channel);
 private:
     TimeoutSerial* serial;
-    boost::mutex pololuMutex;
+    std::mutex pololuMutex;
     
     void maestroSetTarget(int channel, double target);
     double maestroGetTarget(int channel);

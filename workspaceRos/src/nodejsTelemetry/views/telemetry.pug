@@ -1,0 +1,18 @@
+extends layout
+block content
+    div.row.mt-4
+        div.col-md-3.gauge
+            canvas(width="300", height="300", data-width='300', data-height='300')#compass
+            canvas(width="300", height="300", data-width='300', data-height='300')#speed
+        div.col-md-3.gauge
+            canvas(width="300", height="300", data-width='300', data-height='300')#heeling
+
+        div.col-md-3.gauge
+            canvas(width="300", height="300", data-width='300', data-height='300')#windspd
+        div.col-md-3.gauge
+            canvas(width="300", height="300", data-width='300', data-height='300')#windAngle
+
+
+    script(src='/js/libs/gauge.min.js')
+
+    script(src='/js/panels.js')

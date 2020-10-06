@@ -1,0 +1,51 @@
+doctype html
+html
+  head
+    title= `${title}`
+    link(rel='stylesheet', href='/css/bootstrap.min.css')
+    link(rel='stylesheet', href='/css/styles.css')
+    link(rel='stylesheet', href='/css/leaflet.css')
+    script(src='/js/libs/jquery-3.4.1.min.js')
+    script(src='/js/libs/bootstrap.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/js/networking.js')
+
+  body
+    div(aria-labelledby="newWPModal", aria-hidden="true", tabindex="-1", role="dialog").modal.fade#newWPModal
+      div(role="document").modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title New mission notification
+
+          .modal-body A new mission has been uploaded to the server. Do you want to update yours accordingly ?
+
+          .modal-footer
+            button(type="button", data-dismiss="modal").btn.btn-secondary Keep my mission
+            button(type="button").btn.btn-primary#updateSocketWP Update my mission
+
+
+    div(aria-labelledby="newSettingsModal", aria-hidden="true", tabindex="-1", role="dialog").modal.fade#newSettingsModal
+      div(role="document").modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title New settings notification
+
+          .modal-body A new set of settings has been uploaded to the server. Do you want to update yours accordingly ?
+
+          .modal-footer
+            button(type="button", data-dismiss="modal").btn.btn-secondary Keep my settings
+            button(type="button").btn.btn-primary#updateSocketSettings Update my settings
+
+
+    nav.navbar.navbar-expand-lg.navbar-light.bg-light
+      a.navbar-brand(href='#') Sailboat telemetry
+      button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarNavAltMarkup', aria-controls='navbarNavAltMarkup', aria-expanded='false', aria-label='Toggle navigation')
+        span.navbar-toggler-icon
+      #navbarNavAltMarkup.collapse.navbar-collapse
+        .navbar-nav
+          a.nav-item.nav-link#navStats(href='/telemetry') Stats
+          a.nav-item.nav-link#navMission(href='/mission') Mission
+          a.nav-item.nav-link#navSettings(href='/settings') Configuration
+
+    div.container-fluid
+      block content
