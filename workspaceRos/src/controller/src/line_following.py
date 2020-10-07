@@ -8,7 +8,7 @@ from numpy import cos, sin, arctan, arctan2, pi, cross, hstack, array, log, sign
 from numpy.linalg import det, norm
 
 from controller.msg import Command
-from controller.msg import Waypoints
+from controller.msg import Line
 from controller.msg import Gps
 from controller.msg import Compass
 from controller.msg import Meteo
@@ -37,7 +37,7 @@ class Controller():
         rospy.Subscriber('/ublox/WIMDA', Meteo, self._callback_meteo)
         rospy.Subscriber('/ublox/WIMWV', Wind, self._callback_wind)
 
-        rospy.Subscriber('/Waypoints', Waypoints, self._callback_waypoints)
+        rospy.Subscriber('/Line', Line, self._callback_line)
 
         self.rate = rospy.Rate(rosrate)
 
@@ -134,7 +134,7 @@ class Controller():
         """
         # self.psi = self.north2east( msg.wind_direction )
 
-    def _callback_waypoints(self, msg):
+    def _callback_line(self, msg):
         """
         Non fonctionnel
         """
@@ -270,7 +270,7 @@ class Controller():
 
         m = array([[xm], [ym]])
 
-        u1, u2 = self.control(self.a, self.b, m)
+        u1, u2 = self.control(a, b, m)
 
         delta_rudder, delta_main_sail, delta_fore_sail = u1, u2, u2
 
@@ -288,7 +288,7 @@ class Controller():
         state.y = ym
         state.theta = self.heading
 
-    	self.pub_pwm.publish(pwm)
+        self.pub_pwm.publish(pwm)
         self.pub_state.publish(state)
 
 if __name__ == "__main__":

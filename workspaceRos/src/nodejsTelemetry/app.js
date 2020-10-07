@@ -3,6 +3,8 @@ var app = express();
 var server = require('http').Server(app);
 var io = require('socket.io')(server);
 
+const rosnodejs = require('rosnodejs');
+
 var path = require('path');
 var routes = require('./routes/index');
 var bodyParser = require('body-parser');
@@ -36,18 +38,38 @@ var waypoints = [
 ];
 var settings = [
   {
-    variable:"line_Distance",
+    variable: "line_Distance",
     type: "int",
     value: 5,
     description: "Allowed distance to the line"
   },
   {
-    variable:"tacking_Angle",
+    variable: "tacking_Angle",
     type: "int",
     value: 35,
     description: "Minimum allowed tacking angle"
   },
 ];
+
+var std_msgs;
+var wp_pub;
+
+
+std_msgs = rosnodejs.require('std_msgs').msg;
+const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
+
+// Register node with ROS master
+rosnodejs.initNode('telemetry_node')
+  .then((rosNode) => {
+    // Create ROS subscriber on the 'chatter' topic expecting String messages
+    let sub = rosNode.subscribe('/State', geometry_msgs.Pose2D,
+      (data) => { // define callback execution
+        console.log(data);
+      }
+    );
+    wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
+  });
+
 
 io.on('connection', function (socket) {
   console.log("Some one connected !")
@@ -56,6 +78,17 @@ io.on('connection', function (socket) {
     waypoints = data; //sanitize here ?
     console.log(waypoints);
     socket.broadcast.emit('waypoints', waypoints);
+
+    const msg = new std_msgs.Float64MultiArray();
+
+    dt = []
+    waypoints.forEach(wp => {
+      dt.push(wp.latlong[0]);
+      dt.push(wp.latlong[1]);
+    });
+
+    msg.data = Float64Array.from(dt);
+    wp_pub.publish(msg);
   });
 
   socket.on('gimmeWP', function (data) {

@@ -1,0 +1,5 @@
+<launch> 
+
+	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>
+
+</launch>

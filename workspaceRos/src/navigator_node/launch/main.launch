@@ -1,0 +1,8 @@
+<launch> 
+
+	<include file="$(find razor_imu_9dof)/launch/razor_pub.launch"/>
+
+	<include file="$(find controller)/launch/controller.launch"/>
+	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>
+
+</launch>
