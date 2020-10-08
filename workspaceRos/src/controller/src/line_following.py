@@ -135,9 +135,6 @@ class Controller():
         # self.psi = self.north2east( msg.wind_direction )
 
     def _callback_line(self, msg):
-        """
-        Non fonctionnel
-        """
         self.xa, self.ya = msg.xa, msg.ya
         self.xb, self.yb = msg.xb, msg.yb
 
@@ -249,19 +246,6 @@ class Controller():
             return (3/(2*pi))*(self.pwm_max_rudder - self.pwm_min_rudder)*x + self.pwm_min_rudder
 
     def main(self):
-        # Guerledan
-        # lxa, lya = -3.015067, 48.198905
-        # lxb, lyb = -3.015603, 48.198301
-        # lxc, lyc = -3.016049, 48.198762
-
-        # Ty Colo
-        # lya, lxa = 48.431640, -4.615234
-        # lyb, lxb = 48.431352, -4.614569
-        # lyc, lxc = 48.431220, -4.615272
-
-        # xa, ya = self.WGS84_to_cart(lya, lxa)
-        # xb, yb = self.WGS84_to_cart(lyb, lxb)
-        # xc, yc = self.WGS84_to_cart(lyc, lxc)
 
         xm, ym = self.WGS84_to_cart(self.lym, self.lxm)
 
