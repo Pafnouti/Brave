@@ -112,7 +112,7 @@ class Navigator():
         self.rate = rospy.Rate(rosrate)
 
     def validate_wp(self, m, a, b):
-        return np.dot(a-b, m-b) > 0
+        return np.dot(b-a, m-b) > 0
 
     def _callback_state(self, msg):
         self.m = [msg.x, msg.y]
