@@ -57,6 +57,7 @@ add_message_files(
    Gps.msg
    Meteo.msg
    Wind.msg
+   State.msg
  )
 
 ## Generate services in the 'srv' folder
