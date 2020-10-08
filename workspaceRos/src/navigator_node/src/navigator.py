@@ -97,79 +97,48 @@ class Navigator():
 
     def __init__(self, rosrate=10):
         self.waypoints = [] # [(lat, long), ... ]
+        self.waypoint_index = 0
 
         self.a = 0, 0
         self.b = 0, 10
+        self.line = [self.a, self.b]
+        self.m = []
 
-        rospy.Publisher('/Line', Line, queue_size=32)
+        self.pub_line = rospy.Publisher('/Line', Line, queue_size=32)
 
         rospy.Subscriber('/State', Pose2D, self._callback_state)
         rospy.Subscriber('/Waypoints', Float64MultiArray, self._callback_waypoints)
 
         self.rate = rospy.Rate(rosrate)
 
-    def validate_wp(self, pos, a, b):
-        return np.dot(b-a, pos-b) > 0
+    def validate_wp(self, m, a, b):
+        return np.dot(b-a, m-b) > 0
 
     def _callback_state(self, msg):
-        pos = np.array([msg.x, msg.y])
-        if self.validate_wp(pos, np.array(self.a), np.array(self.b)):
-            pass
+        self.m = [msg.x, msg.y]
 
     def _callback_waypoints(self, msg):
         self.waypoints = []
+        self.waypoints[0] = self.m
         dt = np.array(msg.data)
         n = len(dt)
         for i in range(n//2):
             wp = WGS84_to_cart(dt[2*i], dt[2*i+1])
             self.waypoints.append(wp)
-
         print(self.waypoints)
 
     def main(self):
-        # Guerledan
-        # lxa, lya = -3.015067, 48.198905
-        # lxb, lyb = -3.015603, 48.198301
-        # lxc, lyc = -3.016049, 48.198762
-
-        # Ty Colo
-        lya, lxa = 48.431640, -4.615234
-        lyb, lxb = 48.431352, -4.614569
-        lyc, lxc = 48.431220, -4.615272
-
-        xa, ya = WGS84_to_cart(lya, lxa)
-        xb, yb = WGS84_to_cart(lyb, lxb)
-        xc, yc = WGS84_to_cart(lyc, lxc)
-
-        xm, ym = WGS84_to_cart(self.lym, self.lxm)
-
-        a = array([[xa], [ya]])
-        b = array([[xb], [yb]])
-        c = array([[xc], [yc]])
-
-        m = array([[xm], [ym]])
-
-        if abs(m[0]-b[0]) < 5 and abs(m[1]-b[1]) < 5:
-            print("ligne bc")
-            self.FirstLine = False
-            self.pt1 = b
-            self.pt2 = c
-
-        elif abs(m[0]-c[0]) < 5 and abs(m[1]-c[1]) < 5:
-            print("ligne ca")
-            self.FirstLine = False
-            self.pt1 = c
-            self.pt2 = a
-
-        if self.FirstLine:
-            print("ligne ab")
-            self.pt1 = a
-            self.pt2 = b
+        if self.validate_wp(self.m, np.array(self.a), np.array(self.b)):
+            self.a = self.b
+            self.waypoint_index += 1
+            self.b = self.waypoints(self.waypoint_index)
+            self.line = [self.a, self.b]
+            self.pub_line.publish(line)
 
 
 if __name__ == "__main__":
     rospy.init_node('navigator', anonymous=True)
     navigator = Navigator()
     while not rospy.is_shutdown():
-        #navigator.main()
+        navigator.main()
         navigator.rate.sleep()
