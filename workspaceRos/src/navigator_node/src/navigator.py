@@ -52,8 +52,8 @@ def north2east(x):
     Angle of the wind in rad, in trigonometric circle
     """
 
-    x = self.deg2rad(x)
-    return self.sawtooth(pi/2 - x)
+    x = deg2rad(x)
+    return sawtooth(pi/2 - x)
 
 
 def WGS84_to_cart(lat, lon):
@@ -78,20 +78,6 @@ def cart_to_WGS84(x, y):
     else:
         lon = (x/EARTH_RADIUS)*(180./pi)/cos((pi/180.)*(lat))+lon0
     return lat, lon
-
-
-def rad2pwm(x, sail_name):
-    """
-    Bijection de [0, pi/2] sur [pwm_min, pwm_max] pour les voiles.
-    [-pi/3,pi/3] pour rudder
-    """
-    if sail_name == "main":
-        return (2/pi)*(self.pwm_max_main_sail - self.pwm_min_main_sail)*x + self.pwm_min_main_sail
-    elif sail_name == "fore":
-        return (2/pi)*(self.pwm_max_fore_sail - self.pwm_min_fore_sail)*x + self.pwm_min_fore_sail
-    elif sail_name == "rudder":
-        x = x+pi/3
-        return (3/(2*pi))*(self.pwm_max_rudder - self.pwm_min_rudder)*x + self.pwm_min_rudder
 
 
 class Navigator():
