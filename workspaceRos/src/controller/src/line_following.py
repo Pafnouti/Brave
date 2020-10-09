@@ -160,7 +160,7 @@ class Controller():
         ke = 0.5
         e = det(hstack((b-a, m-a)))/norm(b-a)
         thetaBar = phi - ke*arctan(e/r)
-        print("Ecart ligne : ", e)
+        #print("Ecart ligne : ", e)
 
         # ----------- Ajout "remonte au vent" ---------
         # zeta = angle a partir du quel on considere qu'on remonte au vent (pi/4 un peu fort --- pi/6 mieux ?)
