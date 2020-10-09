@@ -8,7 +8,7 @@ from numpy import cos, sin, arctan, arctan2, pi, cross, hstack, array, log, sign
 from numpy.linalg import det, norm
 
 from geometry_msgs.msg import Pose2D
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, Int32
 
 from controller.msg import Line
 
@@ -17,17 +17,18 @@ r, zeta = 10, pi/4
 delta_rmax = pi/3
 EARTH_RADIUS = 6371000.
 # Origine repere Guerledan
-#lat0, lon0 = (48.198427, -3.014750)
+# lat0, lon0 = (48.198427, -3.014750)
 
 # Origine repere Ty Colo
 lat0, lon0 = (48.431775, -4.615529)
+
 
 def sawtooth(x):
     """Deal with 2*PI modulo
 
     Input:
     ------
-    x: rad 
+    x: rad
     """
     return (x+pi) % (2*pi)-pi
 
@@ -96,7 +97,7 @@ def rad2pwm(x, sail_name):
 class Navigator():
 
     def __init__(self, rosrate=10):
-        self.waypoints = [] # [(lat, long), ... ]
+        self.waypoints = []  # [(lat, long), ... ]
         self.waypoint_index = 0
 
         self.a = 0, 0
@@ -105,17 +106,35 @@ class Navigator():
         self.m = []
 
         self.pub_line = rospy.Publisher('/Line', Line, queue_size=32)
+        self.pub_currIndex = rospy.Publisher('/Current_Target', Int32, queue_size=8)
 
         rospy.Subscriber('/State', Pose2D, self._callback_state)
-        rospy.Subscriber('/Waypoints', Float64MultiArray, self._callback_waypoints)
+        rospy.Subscriber('/Waypoints', Float64MultiArray,
+                         self._callback_waypoints)
 
         self.rate = rospy.Rate(rosrate)
 
     def validate_wp(self, m, a, b):
-        return np.dot(b-a, m-b) > 0
+        if m.shape == (2,):
+            return np.dot(b-a, m-b) > 0
+        else:
+            return False
 
     def _callback_state(self, msg):
-        self.m = [msg.x, msg.y]
+        self.m = np.array([msg.x, msg.y])
+        
+        if self.validate_wp(self.m, np.array(self.a), np.array(self.b)):
+            self.a = self.b
+            self.waypoint_index += 1
+
+            self.b = self.waypoints[self.waypoint_index]
+
+            self.line = Line()
+            line.xa = a[0]
+            line.ya = a[1]
+            line.xb = b[0]
+            line.yb = b[1]
+            self.pub_line.publish(line)
 
     def _callback_waypoints(self, msg):
         self.waypoints = []
@@ -128,17 +147,13 @@ class Navigator():
         print(self.waypoints)
 
     def main(self):
-        if self.validate_wp(self.m, np.array(self.a), np.array(self.b)):
-            self.a = self.b
-            self.waypoint_index += 1
-            self.b = self.waypoints(self.waypoint_index)
-            self.line = [self.a, self.b]
-            self.pub_line.publish(line)
+        msg = Int32()
+        msg.data = self.waypoint_index
+        self.pub_currIndex.publish(msg)
 
 
 if __name__ == "__main__":
     rospy.init_node('navigator', anonymous=True)
     navigator = Navigator()
     while not rospy.is_shutdown():
-        navigator.main()
         navigator.rate.sleep()
