@@ -6,6 +6,5 @@ var sendWaypoints = function(wp) {
 };
 
 socket.on("currentTarget", function (data) {
-    console.log(data);
-    $("#wpid").text(data);
+    $("#wpid").text(data.data);
 });
