@@ -35,7 +35,7 @@ socket.on('state', function(state){
     {
         lon = 0
     } else {
-        lon = (state.x/EARTH_RADIUS)*(180./Math.PI)/Math.cos((pi/180.)*(lat))+lon0
+        lon = (state.x/EARTH_RADIUS)*(180./Math.PI)/Math.cos((Math.PI/180.)*(lat))+lon0
     }
 
     myMovingMarker.slideTo([lat, lon], {
