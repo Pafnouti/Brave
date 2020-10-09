@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 import rospy
-import os, subprocess
+import os
 
-rospy.loginfo(os.getcwd())
-
-os.chdir("..")
-
-subprocess.run(["node", "start.js"])
+os.system("node start.js")

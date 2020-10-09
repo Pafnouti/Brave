@@ -20,6 +20,14 @@ socket.on('waypoints', function(wp){
     });
 });
 
+socket.on('state', function(state){
+    m.setRotationAngle(state.heading);
+    myMovingMarker.slideTo(state.latlng, {
+        duration: .9
+    });
+});
+
+
 ///Leaflet.js
 var baseMap = L.tileLayer('http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'

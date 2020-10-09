@@ -62,9 +62,19 @@ const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
     // Create ROS subscriber on the 'chatter' topic expecting String messages
-    let sub = rosNode.subscribe('/State', geometry_msgs.Pose2D,
+    let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
       (data) => { // define callback execution
         console.log(data);
+        /*state.latlng
+        state.heading = 
+        socket.broadcast.emit('state', state);
+        console.log(data);*/
+      }
+    );
+    let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
+      (data) => { // define callback execution
+        console.log(data);
+        socket.broadcast.emit('currentTarget', data);
       }
     );
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
