@@ -116,10 +116,10 @@ class Navigator():
             self.b = self.waypoints[self.waypoint_index]
 
             self.line = Line()
-            line.xa = a[0]
-            line.ya = a[1]
-            line.xb = b[0]
-            line.yb = b[1]
+            self.line.xa = self.a[0]
+            self.line.ya = self.a[1]
+            self.line.xb = self.b[0]
+            self.line.yb = self.b[1]
             self.pub_line.publish(line)
 
     def _callback_waypoints(self, msg):
@@ -130,7 +130,16 @@ class Navigator():
         for i in range(n//2):
             wp = WGS84_to_cart(dt[2*i], dt[2*i+1])
             self.waypoints.append(wp)
-        print(self.waypoints)
+        self.a = self.m
+        self.b = self.waypoints[0]
+        self.waypoint_index = 0
+
+        self.line = Line()
+        self.line.xa = self.a[0]
+        self.line.ya = self.a[1]
+        self.line.xb = self.b[0]
+        self.line.yb = self.b[1]
+        self.pub_line.publish(self.line)
 
     def main(self):
         msg = Int32()
