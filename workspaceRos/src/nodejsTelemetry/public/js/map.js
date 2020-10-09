@@ -27,7 +27,7 @@ const lon0 = -4.615529
 
 
 socket.on('state', function(state){
-    m.setRotationAngle(state.heading);
+    myMovingMarker.setRotationAngle(state.heading);
 
 
     lat = state.y*180./Math.PI/EARTH_RADIUS+lat0
