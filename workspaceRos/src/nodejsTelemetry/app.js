@@ -57,6 +57,12 @@ var wp_pub;
 
 std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
+var state = {
+  x:0,
+  y:0,
+  heading: 0
+};
+var currWP = 0;
 
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
@@ -64,18 +70,14 @@ rosnodejs.initNode('telemetry_node')
     // Create ROS subscriber on the 'chatter' topic expecting String messages
     let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
       (data) => { // define callback execution
-        var state = {
-          x:data.x,
-          y:data.y,
-          heading: data.theta
-        };
-        socket.broadcast.emit('state', state);
+        state.x = data.x;
+        state.y = data.y;
+        state.heading = data.theta;
       }
     );
     let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
       (data) => { // define callback execution
-        console.log(data);
-        socket.broadcast.emit('currentTarget', data);
+        currWP = data;
       }
     );
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
@@ -115,5 +117,8 @@ io.on('connection', function (socket) {
     console.log(data);
     socket.broadcast.emit('settings', settings);
   });
-
+  setInterval(function () {
+    socket.broadcast.emit('state', state);
+    socket.broadcast.emit('currentTarget', currWP);
+  }, 1000);
 });
