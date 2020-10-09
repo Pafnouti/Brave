@@ -20,9 +20,25 @@ socket.on('waypoints', function(wp){
     });
 });
 
+const EPSILON = 0.00000000001
+const EARTH_RADIUS = 6371000.
+const lat0 = 48.431775
+const lon0 = -4.615529
+
+
 socket.on('state', function(state){
     m.setRotationAngle(state.heading);
-    myMovingMarker.slideTo(state.latlng, {
+
+
+    lat = state.y*180./Math.PI/EARTH_RADIUS+lat0
+    if (Math.abs(lat-90.) < EPSILON || Math.abs(lat+90.) < EPSILON)
+    {
+        lon = 0
+    } else {
+        lon = (state.x/EARTH_RADIUS)*(180./Math.PI)/Math.cos((pi/180.)*(lat))+lon0
+    }
+
+    myMovingMarker.slideTo([lat, lon], {
         duration: .9
     });
 });

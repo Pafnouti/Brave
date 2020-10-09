@@ -64,10 +64,10 @@ rosnodejs.initNode('telemetry_node')
     // Create ROS subscriber on the 'chatter' topic expecting String messages
     let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
       (data) => { // define callback execution
-        state.latlng = [data.x, data.y];
-        state.heading = data.theta;/*
+        state.x = data.x;
+        state.y = data.y;
+        state.heading = data.theta;
         socket.broadcast.emit('state', state);
-        console.log(data);*/
       }
     );
     let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
