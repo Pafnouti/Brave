@@ -142,4 +142,5 @@ if __name__ == "__main__":
     rospy.init_node('navigator', anonymous=True)
     navigator = Navigator()
     while not rospy.is_shutdown():
+        navigator.main()
         navigator.rate.sleep()
