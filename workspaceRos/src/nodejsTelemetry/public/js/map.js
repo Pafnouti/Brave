@@ -26,8 +26,9 @@ const lat0 = 48.431775
 const lon0 = -4.615529
 
 
-socket.on('state', function(state){
-    myMovingMarker.setRotationAngle(state.heading);
+setInterval(function() {
+    var angle = -state.heading*90 / Math.PI;
+    myMovingMarker.setRotationAngle(angle);
 
 
     lat = state.y*180./Math.PI/EARTH_RADIUS+lat0
@@ -39,16 +40,18 @@ socket.on('state', function(state){
     }
 
     myMovingMarker.slideTo([lat, lon], {
-        duration: .9
+        duration: .5
     });
-});
+}, 500);
 
 
 ///Leaflet.js
-var baseMap = L.tileLayer('http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+/*var baseMap = L.tileLayer('http://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+});*/
+var baseMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 });
-
 var buoys = L.tileLayer('http://t1.openseamap.org/seamark/{z}/{x}/{y}.png', {
     attribution: 'Map data: &copy; <a href="http://www.openseamap.org">OpenSeaMap</a> contributors'
 });
@@ -73,6 +76,17 @@ boatIcon.options.iconUrl = "boat_icon.png";
 var size = .6;
 boatIcon.options.iconAnchor = [30 * size, 60 * size];
 boatIcon.options.iconSize = [61 * size, 100 * size];
+
+var targetIcon = L.icon({
+    iconUrl: 'css/images/target.png',
+    shadowUrl: 'css/images/target.png',
+
+    iconSize:     [40, 40], // size of the icon
+    shadowSize:   [0, 0], // size of the shadow
+    iconAnchor:   [20, 20], // point of the icon which will correspond to marker's location
+    shadowAnchor: [20, 20],  // the same for the shadow
+    popupAnchor:  [20, 0] // point from which the popup should open relative to the iconAnchor
+});
 
 var myMovingMarker = new L.marker([48.370954, -4.480665], {
     icon: boatIcon

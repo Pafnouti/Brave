@@ -185,3 +185,9 @@ var heeling = new RadialGauge({
     animationRule: "linear",
     animationTarget: "plate"
 }).draw();
+
+setInterval(function () {
+    compass.value = -state.heading*90 / Math.PI;
+    speed.value = state.SOG;
+    windspd.value = state.TWS; 
+}, 1000);

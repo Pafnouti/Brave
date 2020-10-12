@@ -5,6 +5,32 @@ var sendWaypoints = function(wp) {
     socket.emit("newMission", wp);
 };
 
+var currWP = NaN;
+
+var state = {
+    x:0,
+    y:0,
+    heading: 20,
+    SOG: 0,
+    COG: 0,
+    TWS: 0,
+    TWA: 0
+};
+
+socket.on('state', function (newState) {
+    state = newState;
+});
+
 socket.on("currentTarget", function (data) {
-    $("#wpid").text(data.data);
+    var id = Number(data.data);
+    if(id != currWP) {
+        console.log(currWP);
+        wayPointsList.forEach(element => {
+            element.marker.setIcon(new L.Icon.Default());
+        });
+        wayPointsList[id].marker.setIcon(targetIcon);
+        $("#wpid").text(data.data);
+        currWP = id;
+        console.log(currWP);
+    }
 });

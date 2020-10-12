@@ -8,6 +8,7 @@ const rosnodejs = require('rosnodejs');
 var path = require('path');
 var routes = require('./routes/index');
 var bodyParser = require('body-parser');
+const { stat } = require('fs');
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -57,16 +58,23 @@ var wp_pub;
 
 std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
+
+
 var state = {
   x:0,
   y:0,
-  heading: 0
+  heading: 20,
+  SOG: 0,
+  COG: 0,
+  TWA: 0
 };
 var currWP = 0;
 
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
+    controller_msg = rosnodejs.require('controller').msg;
+
     // Create ROS subscriber on the 'chatter' topic expecting String messages
     let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
       (data) => { // define callback execution
@@ -80,6 +88,16 @@ rosnodejs.initNode('telemetry_node')
         currWP = data;
       }
     );
+
+    let subGPS = rosNode.subscribe('/ublox/GPRMC', controller_msg.Gps, (data) => {
+      state.SOG = data.boat_speed;
+      state.COG = data.heading;
+    });
+    let subWind = rosNode.subscribe('/ublox/WIMDA', controller_msg.Meteo, (data) => {
+      state.TWS = data.true_wind_speed;
+      state.TWA = data.wind_direction;
+    });
+
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
   });
 

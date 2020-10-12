@@ -124,7 +124,6 @@ class Navigator():
 
     def _callback_waypoints(self, msg):
         self.waypoints = []
-        self.waypoints[0] = self.m
         dt = np.array(msg.data)
         n = len(dt)
         for i in range(n//2):
