@@ -98,7 +98,7 @@ var speed = new RadialGauge({
     renderTo: 'speed',
     width : 500,
     height: 500,
-    title:"GSPD",
+    title:"SOG",
     units: "kt",
     minValue: 0,
     maxValue: 22,
