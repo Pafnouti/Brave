@@ -63,7 +63,7 @@ const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
 var state = {
   x:0,
   y:0,
-  heading: 20,
+  heading: 0,
   SOG: 0,
   COG: 0,
   TWA: 0

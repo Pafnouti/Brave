@@ -1,5 +1,6 @@
 $("#navMission").addClass("active")
 
+
 var wayPointsList = [];
 
 /// Socket.io
@@ -18,6 +19,20 @@ socket.on('waypoints', function(wp){
         updateWPList(wp);
         updatePath();
     });
+});
+
+socket.on("currentTarget", function (data) {
+    var id = Number(data.data);
+    console.log(Boolean( id));
+    if(id && id != currWP) {
+        console.log(id);
+        wayPointsList.forEach(element => {
+            element.marker.setIcon(new L.Icon.Default());
+        });
+        wayPointsList[id].marker.setIcon(targetIcon);
+        $("#wpid").text(data.data);
+        currWP = id;
+    }
 });
 
 const EPSILON = 0.00000000001
@@ -210,6 +225,7 @@ var updateWPList = function (wps) {
     });
 
     wayPointsList = [];
+
     wps.forEach(wp => {
         if (!wp.marker) {
             var marker = new L.marker(wp.latlong, {
