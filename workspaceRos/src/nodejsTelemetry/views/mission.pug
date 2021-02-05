@@ -22,7 +22,10 @@ block content
                 
 
             button(type="button").btn.btn-success.btn-block.submitWP Send mission
-
+            div.btn-group(role="group")
+                input(type="file").btn.btn-success#file-input
+                button(type="button").btn.btn-primary.downloadBtn
+                    i.fa.fa-download   Download mission
         div.col-md-9
             #mapdiv
 

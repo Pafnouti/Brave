@@ -86,10 +86,10 @@ class Navigator():
         self.waypoints = []  # [(lat, long), ... ]
         self.waypoint_index = 0
 
-        self.a = 0, 0
-        self.b = 0, 10
+        self.a = [0, 0]
+        self.b = [0, 10]
         self.line = [self.a, self.b]
-        self.m = []
+        self.m = [0, 0]
 
         self.pub_line = rospy.Publisher('/Line', Line, queue_size=32)
         self.pub_currIndex = rospy.Publisher('/Current_Target', Int32, queue_size=8)

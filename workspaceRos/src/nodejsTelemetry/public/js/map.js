@@ -2,11 +2,12 @@ $("#navMission").addClass("active")
 
 
 var wayPointsList = [];
+var staticWaypoints = [];
 
 /// Socket.io
 socket.on("yourWP", function(data) {
     currID = data.length;
-    updateWPList(data);
+    updateStaticWPList(data);
     updatePath();
 });
 
@@ -23,13 +24,12 @@ socket.on('waypoints', function(wp){
 
 socket.on("currentTarget", function (data) {
     var id = Number(data.data);
-    console.log(Boolean( id));
     if(id && id != currWP) {
         console.log(id);
-        wayPointsList.forEach(element => {
+        staticWaypoints.forEach(element => {
             element.marker.setIcon(new L.Icon.Default());
         });
-        wayPointsList[id].marker.setIcon(targetIcon);
+        staticWaypoints[id].marker.setIcon(targetIcon);
         $("#wpid").text(data.data);
         currWP = id;
     }
@@ -262,6 +262,39 @@ var updateWPList = function (wps) {
     $(".deleteWP").click(deleteWPf);
 }
 
+var updateStaticWPList = function (wps) {
+    console.log(wps);
+    //wps must contain an id and a latlong array at the bare minimum
+    staticWaypoints.forEach(element => {
+        if (element.marker) {
+            map.removeLayer(element.marker);
+        }
+    });
+
+    staticWaypoints = [];
+
+    wps.forEach(wp => {
+        if (!wp.marker) {
+            var marker = new L.marker(wp.latlong, {
+                draggable: 'false'
+            });
+            
+            wp.marker = marker;
+
+        }
+        map.addLayer(wp.marker);
+        staticWaypoints.push(wp);
+        wp.marker.dragging.disable();
+        wp.marker.setZIndexOffset(-1);
+    });
+    var latlongs = [];
+    staticWaypoints.forEach(element => {
+        latlongs.push(element.latlong);
+    });
+    polylineStatic.setLatLngs(latlongs);
+    decoratorStatic.setPaths(polylineStatic);
+}
+
 /// Initialize
 
 wayPointsList = [
@@ -289,16 +322,60 @@ wayPointsList = [
 
 updateWPList(wayPointsList);
 
-var polyline = L.polyline([], { color: 'red' }).addTo(map);
+var polyline = L.polyline([]).setStyle({
+    color: 'blue'
+});
+polyline.addTo(map);
+
+var polylineStatic = L.polyline([]).setStyle({
+    color: 'grey'
+});
+polylineStatic.addTo(map);
+
 
 var decorator = L.polylineDecorator(polyline, {
     patterns: [
         // defines a pattern of 10px-wide dashes, repeated every 20px on the line
-        {offset: 0, repeat: 20, symbol: L.Symbol.arrowHead({pixelSize: 15, polygon: false, pathOptions: {stroke: true}})}
+        {offset: 0, repeat: 20, symbol: L.Symbol.arrowHead({pixelSize: 7, polygon: false, pathOptions: {stroke: true}})}
+    ]
+}).addTo(map);
+
+var decoratorStatic = L.polylineDecorator(polyline, {
+    patterns: [
+        // defines a pattern of 10px-wide dashes, repeated every 20px on the line
+        {offset: 0, repeat: 20, symbol: L.Symbol.arrowHead({pixelSize: 7, polygon: false, pathOptions: {color: "#555555", stroke: true}})}
     ]
 }).addTo(map);
 
 updatePath();
+
+function download(content, fileName, contentType) {
+    var a = document.createElement("a");
+    var file = new Blob([content], {type: contentType});
+    a.href = URL.createObjectURL(file);
+    a.download = fileName;
+    a.click();
+}
+$('.downloadBtn').click(function(event) {
+    console.log('catch');
+    download(wayPointsList, 'mission.json', 'application/json');
+});
+var f;
+function readSingleFile(e) {
+    var file = e.target.files[0];
+    if (!file) {
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var contents = e.target.result;
+        f = contents;
+    };
+    reader.readAsText(file);
+  }
+
+  
+$("#file-input").on('change', readSingleFile);
 
 /*
 m.slideTo([48.864433, 2.371324], {

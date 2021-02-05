@@ -21,19 +21,19 @@ module.exports = server;
 
 var waypoints = [
   {
-    latlong: [48.370954, -4.480665],
+    latlong: [48.375, -4.480665],
     id: "id0"
   },
   {
-    latlong: [48.380, -4.480665],
+    latlong: [48.390, -4.480665],
     id: "id1"
   },
   {
-    latlong: [48.370954, -4.4850],
+    latlong: [48.350, -4.4850],
     id: "id2"
   },
   {
-    latlong: [48.370954, -4.475],
+    latlong: [48.360, -4.475],
     id: "id3"
   }
 ];
@@ -108,7 +108,7 @@ io.on('connection', function (socket) {
   socket.on('newMission', function (data) {
     waypoints = data; //sanitize here ?
     console.log(waypoints);
-    socket.broadcast.emit('waypoints', waypoints);
+    socket.emit('yourWP', waypoints);
 
     const msg = new std_msgs.Float64MultiArray();
 
@@ -139,4 +139,5 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
   }, 1000);
+  
 });
