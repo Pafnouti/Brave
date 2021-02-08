@@ -102,18 +102,19 @@ rosnodejs.initNode('telemetry_node')
 
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
     routing_pub = rosNode.advertise("/Routing", std_msgs.Bool)
+    routing_tgt_pub = rosNode.advertise("/Target", geometry_msgs.Pose2D)
   });
 
 
 io.on('connection', function (socket) {
   console.log("Some one connected !")
 
+  const wps_msg = new std_msgs.Float64MultiArray();
   socket.on('newMission', function (data) {
     waypoints = data; //sanitize here ?
     console.log(waypoints);
     socket.emit('yourWP', waypoints);
 
-    const msg = new std_msgs.Float64MultiArray();
 
     dt = []
     waypoints.forEach(wp => {
@@ -121,8 +122,8 @@ io.on('connection', function (socket) {
       dt.push(wp.latlong[1]);
     });
 
-    msg.data = Float64Array.from(dt);
-    wp_pub.publish(msg);
+    wps_msg.data = Float64Array.from(dt);
+    wp_pub.publish(wps_msg);
   });
 
   socket.on('gimmeWP', function (data) {
@@ -139,12 +140,26 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('settings', settings);
   });
 
+  var tgt_msg = new geometry_msgs.Pose2D();
+
   socket.on('Routing', function(data) {
     var msg = new std_msgs.Bool();
     msg.data = data;
     console.log(data);
     routing_pub.publish(msg);
-  })
+    if(data) {
+      routing_tgt_pub.publish(tgt_msg)
+    } else {
+      wp_pub.publish(msg);
+    }
+  });
+  
+  socket.on("routingTarget", function(data){
+    console.log('ding');
+    tgt_msg.x = data.lat;
+    tgt_msg.y = data.lon;
+    routing_tgt_pub.publish(tgt_msg)
+  });
   setInterval(function () {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
