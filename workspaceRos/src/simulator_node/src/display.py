@@ -36,6 +36,10 @@ def showImage(image : pygame.Surface, pos : tuple, angleDeg : int):
     screen.blit(image_rot, image_rect)
 
 def drawArrow(angle : int, pos : tuple, color=(0, 0, 0), scale = 1.):
+    scx, scy = pos
+    cx = scx + width/2
+    cy = height/2-scy
+    
     surface = pygame.Surface((300, 300))
     surface.set_colorkey(black)
     if color == (0, 0, 0):
@@ -44,7 +48,13 @@ def drawArrow(angle : int, pos : tuple, color=(0, 0, 0), scale = 1.):
     
     ns = (int(300 * scale), int(300 * scale))
     surface = pygame.transform.scale(surface, ns)
-    showImage(surface, pos, angle)
+    showImage(surface, (cx, cy), angle)
+
+def drawBuoy(point, color=(255,0,0)):
+    scx, scy = point
+    cx = scx + width/2
+    cy = height/2-scy
+    pygame.draw.circle(screen, color, (cx, cy), 15)
 
 def drawSailboat(pos:tuple, heading:int, sailAngle:int, rudderAngle:int):
     """

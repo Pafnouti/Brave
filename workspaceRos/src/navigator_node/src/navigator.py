@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import rospy
 import numpy as np
@@ -88,7 +88,11 @@ class Navigator():
 
         self.a = [0, 0]
         self.b = [0, 10]
-        self.line = [self.a, self.b]
+        self.line = Line()
+        self.line.xa = self.a[0]
+        self.line.ya = self.a[1]
+        self.line.xb = self.b[0]
+        self.line.yb = self.b[1]
         self.m = [0, 0]
 
         self.pub_line = rospy.Publisher('/Line', Line, queue_size=32)
@@ -112,9 +116,7 @@ class Navigator():
         if self.validate_wp(self.m, np.array(self.a), np.array(self.b)):
             self.a = self.b
             self.waypoint_index += 1
-
             self.b = self.waypoints[self.waypoint_index]
-
             self.line = Line()
             self.line.xa = self.a[0]
             self.line.ya = self.a[1]
@@ -149,6 +151,11 @@ class Navigator():
 if __name__ == "__main__":
     rospy.init_node('navigator', anonymous=True)
     navigator = Navigator()
+
+    lat0 = rospy.get_param("/origin/lat")
+    lon0 = rospy.get_param("/origin/lon")
+
     while not rospy.is_shutdown():
         navigator.main()
         navigator.rate.sleep()
+        #navigator.pub_line.publish(navigator.line)

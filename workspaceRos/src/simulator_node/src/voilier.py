@@ -17,11 +17,12 @@ class Sailboat(object):
         self.v = .02
         self.theta = 0 # RollPitchYaw / phi, _, theta
         self.theta_dot = 0
+        self.twd = 0
         self.twa = 0
         self.sailAngle = 0
         self.rudderAngle = 0
-
-        polar = pd.read_csv("boat_Hermione.csv", sep=';')
+        self.q = 1
+        polar = pd.read_csv("boat_Express.csv", sep=';')
         tws = polar.columns[1:].astype("float")
         twa = polar.values[:,0]
         self.polar_f = interpolate.interp2d(tws, twa, polar.values[:, 1:], kind='linear')
@@ -52,17 +53,16 @@ class Sailboat(object):
 
         #force_sail = self.alphav * self.v * np.cos(yaw + u_sail) - self.alphav * self.v * np.sin(u_sail)
         #force_rudder = self.alphag * self.v * np.sin(u_rudder)
-    
         dx = np.array([
-            self.v * np.cos(-np.pi/2 + yaw) * dT,
-            self.v * np.sin(-np.pi/2 + yaw) * dT
+            self.v * np.cos(yaw) * dT,
+            self.v * np.sin(yaw) * dT
         ]).astype('float64').flatten()
         self.x += dx
 
         #self.v += (1 / self.m) * (np.sin(u_sail) * force_sail - np.sin(u_rudder) * force_rudder - self.alphaf * self.v) * dT
         wspd = 4*np.linalg.norm(wind)#knots
-        
-        twa = sawtooth(self.theta - np.arctan2(wind[1], wind[0]))
+        self.twd = np.arctan2(wind[1], wind[0])
+        twa = sawtooth(self.theta - self.twd)
         if(np.abs(twa) < np.pi/3):
             self.sailAngle = 0
         elif np.abs(twa) < 3*np.pi/4:
@@ -84,13 +84,13 @@ class Sailboat(object):
 
     def control(self, a, b):
         r = 20
-        zeta = np.pi/3 #close hauled angle
+        zeta = 0.3*np.pi #close hauled angle
 
         theta = self.theta  # cap robot
         phi = np.arctan2(b[1, 0]-a[1, 0], b[0, 0]-a[0, 0])
         cap = sawtooth(theta-phi)
 
-        delta_r = -(1/np.pi)*cap 
+        #delta_r = (1/np.pi)*cap 
         m = self.x.reshape((2,1))
         # ------------ Ajout ecart a la ligne --------
         ke = 0.5
@@ -100,14 +100,14 @@ class Sailboat(object):
 
         # ----------- Ajout "remonte au vent" ---------
         # zeta = angle a partir du quel on considere qu'on remonte au vent (pi/4 un peu fort --- pi/6 mieux ?)
+
         if abs(e) > r:  # on est en dehors du chenal
             self.q = np.sign(e)  # de quel cote on est de la ligne
-
         # si mon angle vent - angle boat < zeta
-        if np.cos(self.twa-thetaBar) + np.cos(zeta) < 0:
-            #print("Je remonte le vent \r", end="")
-            #sys.stdout.flush()
-            thetaBar = np.pi + self.twa - 1.25*zeta
+        print(" TWD : {:.2f} Theta : {:.2f} TWA : {:.2f} ThetaBar : {:.2f}".format(self.twd, sawtooth(theta), self.twa, thetaBar))
+        if sawtooth(self.twd-thetaBar) < zeta:
+            print("Je remonte le vent")
+            thetaBar = self.twd - self.q*zeta
         
         delta_rmax = 1
         delta_r = (delta_rmax/np.pi) * \

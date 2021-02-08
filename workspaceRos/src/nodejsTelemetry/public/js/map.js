@@ -37,8 +37,8 @@ socket.on("currentTarget", function (data) {
 
 const EPSILON = 0.00000000001
 const EARTH_RADIUS = 6371000.
-const lat0 = 48.431775
-const lon0 = -4.615529
+var lat0 = 48.431775
+var lon0 = -4.615529
 
 
 setInterval(function() {
@@ -351,50 +351,38 @@ updatePath();
 
 function download(content, fileName, contentType) {
     var a = document.createElement("a");
-    var file = new Blob([content], {type: contentType});
+
+    wplist = []
+    content.forEach(element => {
+        wplist.push({
+            latlong:element.latlong,
+            id: element.id
+        })
+    });
+
+    var file = new Blob([JSON.stringify(wplist)], {type: contentType});
     a.href = URL.createObjectURL(file);
     a.download = fileName;
     a.click();
 }
 $('.downloadBtn').click(function(event) {
-    console.log('catch');
     download(wayPointsList, 'mission.json', 'application/json');
 });
-var f;
+
 function readSingleFile(e) {
     var file = e.target.files[0];
     if (!file) {
       return;
     }
     var reader = new FileReader();
+
     reader.onload = function(e) {
         var contents = e.target.result;
-        f = contents;
+        updateWPList(JSON.parse(contents));
+        updatePath();
     };
     reader.readAsText(file);
   }
 
   
 $("#file-input").on('change', readSingleFile);
-
-/*
-m.slideTo([48.864433, 2.371324], {
-    duration: 3000
-});
-
-// or just set rotation with method
-m.setRotationAngle(65);*/
-/*
-var marker = new L.marker(curLocation, {
-    draggable: 'true'
-});
-
-marker.on('dragend', function (event) {
-    var position = marker.getLatLng();
-    marker.setLatLng(position, {
-        draggable: 'true'
-    }).bindPopup(position).update();
-    console.log(position);
-});*/
-
-//map.addLayer(marker);
