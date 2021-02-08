@@ -351,7 +351,16 @@ updatePath();
 
 function download(content, fileName, contentType) {
     var a = document.createElement("a");
-    var file = new Blob([content], {type: contentType});
+
+    wplist = []
+    content.forEach(element => {
+        wplist.push({
+            latlong:element.latlong,
+            id: element.id
+        })
+    });
+
+    var file = new Blob([JSON.stringify(wplist)], {type: contentType});
     a.href = URL.createObjectURL(file);
     a.download = fileName;
     a.click();
@@ -367,9 +376,11 @@ function readSingleFile(e) {
       return;
     }
     var reader = new FileReader();
+
     reader.onload = function(e) {
         var contents = e.target.result;
-        f = contents;
+        updateWPList(JSON.parse(contents));
+        updatePath();
     };
     reader.readAsText(file);
   }

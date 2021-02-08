@@ -1,4 +1,5 @@
 
+
 var socket = io.connect();
 
 var sendWaypoints = function(wp) {
@@ -20,3 +21,14 @@ var state = {
 socket.on('state', function (newState) {
     state = newState;
 });
+
+window.onload = function() {
+    $("#routing").click((function() {
+        if ($('#routing').is(":checked"))
+        {
+            socket.emit('Routing', true)
+        } else {
+            socket.emit('Routing', false)
+        }
+    }));
+}

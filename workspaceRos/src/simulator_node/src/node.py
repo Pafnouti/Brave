@@ -75,7 +75,7 @@ while 1:
     dt = clock.tick(60)
 
     screen.blit(background_image, (0,0))
-    drawSailboat(sailboat.x, 180*sailboat.theta/np.pi, 180*sailboat.sailAngle/np.pi, 180*sailboat.rudderAngle/np.pi)
+    drawSailboat(sailboat.x, 180*(np.pi/2 - sailboat.theta)/np.pi, 180*sailboat.sailAngle/np.pi, 180*sailboat.rudderAngle/np.pi)
 
     sx, sy = sailboat.x
 
@@ -84,14 +84,15 @@ while 1:
 
     local_wind_x= wind[0][int(cx/width * windGridSize), int(cy/height * windGridSize)]
     local_wind_y= wind[1][int(cx/width * windGridSize), int(cy/height * windGridSize)]
-    print(sx, sy)
     u = sailboat.control(a, b)
+    drawBuoy(a.flatten(), color=(255,0,0))
+    drawBuoy(b.flatten(), color=(255,100,100))
     sailboat.step(0, u, .1, np.array([local_wind_x, local_wind_y]))
     if counter >= 30:
         p = Pose2D()
-        p.x = float(sailboat.x[0] - width/2)
-        p.y = float(width/2-sailboat.x[1])
-        p.theta = float(sailboat.theta)
+        p.x = float(sx)
+        p.y = float(sy)
+        p.theta = float(-sailboat.theta)
         state_pub.publish(p)
         counter = 0
     counter += 1

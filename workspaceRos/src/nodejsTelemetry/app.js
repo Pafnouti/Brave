@@ -81,7 +81,6 @@ rosnodejs.initNode('telemetry_node')
         state.x = data.x;
         state.y = data.y;
         state.heading = data.theta;
-        console.log(state)
       }
     );
     let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
@@ -100,6 +99,7 @@ rosnodejs.initNode('telemetry_node')
     });
 
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
+    routing_pub = rosNode.advertise("/Routing", std_msgs.Bool)
   });
 
 
@@ -136,6 +136,13 @@ io.on('connection', function (socket) {
     console.log(data);
     socket.broadcast.emit('settings', settings);
   });
+
+  socket.on('Routing', function(data) {
+    var msg = new std_msgs.Bool();
+    msg.data = data;
+    console.log(data);
+    routing_pub.publish(msg);
+  })
   setInterval(function () {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
