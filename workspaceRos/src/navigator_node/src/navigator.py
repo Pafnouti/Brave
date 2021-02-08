@@ -120,7 +120,7 @@ class Navigator():
             self.line.ya = self.a[1]
             self.line.xb = self.b[0]
             self.line.yb = self.b[1]
-            self.pub_line.publish(line)
+            self.pub_line.publish(self.line)
 
     def _callback_waypoints(self, msg):
         self.waypoints = []
