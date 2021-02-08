@@ -1,5 +1,7 @@
 <launch> 
-
+	<param name="/origin/lat" value= 48.431775/>
+	<param name="/origin/lon" value= -4.615529/>
+	
 	<include file="$(find razor_imu_9dof)/launch/razor-pub.launch"/>
 	<include file="$(find controller)/launch/controller.launch"/>
 	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>

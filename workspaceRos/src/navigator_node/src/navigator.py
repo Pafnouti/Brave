@@ -151,6 +151,10 @@ class Navigator():
 if __name__ == "__main__":
     rospy.init_node('navigator', anonymous=True)
     navigator = Navigator()
+
+    lat0 = rospy.get_param("/origin/lat")
+    lon0 = rospy.get_param("/origin/lon")
+
     while not rospy.is_shutdown():
         navigator.main()
         navigator.rate.sleep()

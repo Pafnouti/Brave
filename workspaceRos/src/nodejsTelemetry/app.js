@@ -66,7 +66,9 @@ var state = {
   heading: 0,
   SOG: 0,
   COG: 0,
-  TWA: 0
+  TWA: 0,
+  lat0: 48.431775,
+  lon0: -4.615529
 };
 var currWP = 0;
 
