@@ -147,11 +147,11 @@ io.on('connection', function (socket) {
     msg.data = data;
     console.log(data);
     routing_pub.publish(msg);
-    if(data) {
+    /*if(data) {
       routing_tgt_pub.publish(tgt_msg)
     } else {
       wp_pub.publish(msg);
-    }
+    }*/
   });
   
   socket.on("routingTarget", function(data){
