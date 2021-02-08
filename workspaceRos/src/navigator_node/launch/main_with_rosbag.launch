@@ -1,0 +1,9 @@
+<launch> 
+
+	<include file="$(find razor_imu_9dof)/launch/razor-pub.launch"/>
+	<include file="$(find controller)/launch/controller.launch"/>
+	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>
+	<node name="nodejs" pkg="nodejsTelemetry" type="launcher.py" output="screen" cwd="node"/>
+	<node name="record" pkg="rosbag" type="record" args="-a -o $(arg log_name)" cwd="node"/>
+
+</launch>

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  geometry_msgs
   message_generation
 )
 
@@ -51,11 +52,12 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
    FILES
    Command.msg
-   Waypoints.msg
+   Line.msg
    Compass.msg
    Gps.msg
    Meteo.msg
    Wind.msg
+   State.msg
  )
 
 ## Generate services in the 'srv' folder

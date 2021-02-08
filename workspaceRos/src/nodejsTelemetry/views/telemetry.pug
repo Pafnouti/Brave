@@ -1,0 +1,18 @@
+extends layout
+block content
+    div.row.mt-4
+        div.col-lg-3.col-md-4.col-sm-6.gauge
+            canvas(width="300", height="300")#compass
+        div.col-lg-3.col-md-4.col-sm-6.gauge
+            canvas(width="300", height="300")#speed
+        div.col-lg-3.col-md-4.col-sm-6.gauge
+            canvas(width="300", height="300")#heeling
+        div.col-lg-3.col-md-4.col-sm-6.gauge
+            canvas(width="300", height="300")#windspd
+        div.col-lg-3.col-md-4.col-sm-6.gauge
+            canvas(width="300", height="300")#windAngle
+
+
+    script(src='/js/libs/gauge.min.js')
+
+    script(src='/js/panels.js')
