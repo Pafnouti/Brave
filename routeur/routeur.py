@@ -8,7 +8,7 @@ from scipy.spatial.distance import cdist
 import alphashape
 import pickle as pkl
 import matplotlib.pyplot as plt
-import pandas as pd
+
 
 
 def distanceAB(A, B):
@@ -35,35 +35,16 @@ class Routeur():
         self.vitesse_max = 5
         self.vent_ideal = 10
 
-        polar = pd.read_csv("boat_Express.csv", sep=";")
-        tws = polar.columns[1:].astype('float')
-        twa = polar.values[:,0]
-        self.polar_f = interpolate.interp2d(tws, twa, polar.values[:, 1:], kind='linear')
 
-
-    def polaire(self, alpha, vent=(10, 0)):
-
+    def polaire(self, alpha, vent=(1, 0)):
         a = alpha - vent[1]
         if a > np.pi: a = 2*np.pi - a
         if a < 0: a = - a
-        a = 180*a/np.pi
-        return self.polar_f(vent[0], a)
-        
-
-    def polaire_plot(self):
-        ax = plt.subplot(111, polar=True)
-        ax.set_theta_offset(np.pi/2)
-        vent = [10]
-        for v in vent:
-            A = np.linspace(0, 2*np.pi, 100)
-            V = []
-            for a in A:
-                V.append(self.polaire(a, (10, 0)))
-        ax.plot(A, V)
-        plt.show()
+        return self.inter_polaire(a)*self.vitesse_max
+        #return 1
 
     def weather(self, t=0, pos=(0, 0)):
-        return (10, 0)
+        return 10, 0
 
     def compute_iso(self, points, zone, A, B, d_min=4, line=True, pas=1):
 
@@ -184,9 +165,6 @@ class Routeur():
 if __name__ == "__main__":
     
     routeur = Routeur()
-
-    routeur.polaire_plot()
-
     traj, iso = routeur.run((0, 0), (24, 35))
     for i in iso:
         plt.plot(i[:, 0], i[:, 1])
