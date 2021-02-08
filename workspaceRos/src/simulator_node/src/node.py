@@ -2,10 +2,11 @@
 import numpy as np
 import rospy
 from controller.msg import Line
+from geometry_msgs.msg import Pose2D
 
 from display import *
 import pygame
-from voilier import Sailboat
+from voilier import Sailboat, sawtooth
 from wind import Wind
 import pickle
 from scipy import interpolate
@@ -24,13 +25,13 @@ try:
     # Do something with the file
 except:
     print("No wind file found, generating one")
-    windpos, wind = Wind(width, height).getWindGrid(shape=(windGridSize, windGridSize))
+    windpos, wind = Wind(width, height, roughness=.8, noise_amp=16, constant_wind=(0, -10)).getWindGrid(shape=(windGridSize, windGridSize))
 
     nf = open("wind.bin", 'wb')
     pickle.dump((windpos, wind), nf)
 
 target = (500 , 500)
-
+print(windpos.shape)
 clock = pygame.time.Clock()
 
 ws = wind[0].shape
@@ -52,13 +53,22 @@ except:
     rospy.init_node('navigator', anonymous=True)
     rospy.init_node('navigator', anonymous=True)
 
+a = np.zeros((2,1))
+b = np.ones((2,1))
+m = np.zeros((2,1))
+
 def line_callback(data):
     rospy.loginfo("Got new line")
+    a[0, 0] = data.xa
+    a[1, 0] = data.ya
+    b[0, 0] = data.xb
+    b[1, 0] = data.yb
 
 
 rospy.init_node("simulator")
 rospy.Subscriber("/Line", Line, line_callback)
-
+state_pub = rospy.Publisher("/State", Pose2D)
+counter = 0
 while 1:
     for event in pygame.event.get():
         if event.type == pygame.QUIT: sys.exit()
@@ -68,9 +78,22 @@ while 1:
     drawSailboat(sailboat.x, 180*sailboat.theta/np.pi, 180*sailboat.sailAngle/np.pi, 180*sailboat.rudderAngle/np.pi)
 
     sx, sy = sailboat.x
-    local_wind_x= wind[0][int(sx/width * windGridSize), int(sy/height * windGridSize)]
-    local_wind_y= wind[1][int(sx/width * windGridSize), int(sy/height * windGridSize)]
-    twa = sailboat.step(0, 0, .1, np.array([local_wind_x, local_wind_y]))
 
+    cx = sx + width/2
+    cy = height/2-sy
+
+    local_wind_x= wind[0][int(cx/width * windGridSize), int(cy/height * windGridSize)]
+    local_wind_y= wind[1][int(cx/width * windGridSize), int(cy/height * windGridSize)]
+    print(sx, sy)
+    u = sailboat.control(a, b)
+    sailboat.step(0, u, .1, np.array([local_wind_x, local_wind_y]))
+    if counter >= 30:
+        p = Pose2D()
+        p.x = float(sailboat.x[0] - width/2)
+        p.y = float(width/2-sailboat.x[1])
+        p.theta = float(sailboat.theta)
+        state_pub.publish(p)
+        counter = 0
+    counter += 1
     drawArrow(180 + 180/np.pi * np.arctan2(local_wind_y, local_wind_x), sailboat.x + np.array([50, 0]), scale=.1)
     pygame.display.flip()

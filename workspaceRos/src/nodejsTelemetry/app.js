@@ -81,6 +81,7 @@ rosnodejs.initNode('telemetry_node')
         state.x = data.x;
         state.y = data.y;
         state.heading = data.theta;
+        console.log(state)
       }
     );
     let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,

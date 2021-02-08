@@ -38,21 +38,26 @@ class Wind():
                 w = self.getWind(pos_x, pos_y)
                 positions[ind_x, ind_y] = np.array([pos_x, pos_y])
                 potential_grid[ind_x, ind_y] = w
-        
-        return positions, np.gradient(potential_grid)
+        wd = np.gradient(potential_grid)
+        wd[0] += self.constant_wind[0]
+        wd[1] += self.constant_wind[1]
+        return positions, wd
 
 if __name__ == "__main__":
     import time
     t = time.time()
-    w = Wind(100, 100, roughness=.8)
-    print(w.getWind(10, 10))
-    print(time.time() - t)
+    w = Wind(100, 100, roughness=.8, noise_amp=16, constant_wind=(0, -10))
 
     x = np.arange(0, 100, 1)
     y = np.arange(0, 100, 1)
 
     _, u = w.getWindGrid()
-    print(len(u))
+    print("")
+    plt.figure()
+    plt.plot(np.linalg.norm(np.array(u), axis=0).flatten()[:1000])
+    plt.title("Wind amplitude")
+    plt.show()
+    plt.figure()
     plt.quiver(x, y, u[0], u[1], angles='uv', scale=1, scale_units='xy')
     plt.show()
 

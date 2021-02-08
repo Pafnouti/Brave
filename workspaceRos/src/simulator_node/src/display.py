@@ -50,9 +50,10 @@ def drawSailboat(pos:tuple, heading:int, sailAngle:int, rudderAngle:int):
     """
         Inputs are in degrees
     """
-    showImage(boat, pos, heading)
-    cx, cy = pos
-    
+    scx, scy = pos
+    cx = scx + width/2
+    cy = height/2-scy
+    showImage(boat, (cx, cy), heading)
     absZeroAngle = (heading - 90)*np.pi/180 + np.pi
     absSailAngle = (sailAngle+heading - 90)*np.pi/180 + np.pi
     absRudderAngle = (rudderAngle+heading-90)*np.pi/180 + np.pi
@@ -61,5 +62,5 @@ def drawSailboat(pos:tuple, heading:int, sailAngle:int, rudderAngle:int):
 
     rudderStartPos = int(cx + rudderOffsetFromBoatCentre*np.cos(absZeroAngle)), int(cy + rudderOffsetFromBoatCentre*np.sin(absZeroAngle))
     rudderEndPos = int(rudderStartPos[0] + rudderLength*np.cos(absRudderAngle)), int(rudderStartPos[1] + rudderLength*np.sin(absRudderAngle))
-    pygame.draw.line(screen, (255, 255, 0), pos, sailEndPos, width=3)
+    pygame.draw.line(screen, (255, 255, 0), (cx, cy), sailEndPos, width=3)
     pygame.draw.line(screen, (255, 0, 255), rudderStartPos, rudderEndPos, width=3)
