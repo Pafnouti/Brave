@@ -54,7 +54,8 @@ var settings = [
 
 var std_msgs;
 var wp_pub;
-
+var routing_pub;
+var routing_tgt_pub;
 
 std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
@@ -71,7 +72,7 @@ var state = {
   lon0: -4.615529
 };
 var currWP = 0;
-
+var newWps = false;
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
@@ -100,20 +101,35 @@ rosnodejs.initNode('telemetry_node')
       state.TWA = data.wind_direction;
     });
 
+    let subWP = rosNode.subscribe("/Waypoints", std_msgs.Float64MultiArray, (data) => {
+      latlong = data.data;
+      wps = []
+      for (let index = 0; index < latlong.length; index+=2) {
+        wps.push({
+          latlong:[latlong[index], latlong[index + 1]],
+          id:index/2
+        });
+      }
+      console.log("Waypoints received on /Waypoints topic.")
+      waypoints = wps;
+      newWps = true;
+    });
+
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
     routing_pub = rosNode.advertise("/Routing", std_msgs.Bool)
+    routing_tgt_pub = rosNode.advertise("/Target", geometry_msgs.Pose2D)
   });
 
 
 io.on('connection', function (socket) {
   console.log("Some one connected !")
 
+  const wps_msg = new std_msgs.Float64MultiArray();
   socket.on('newMission', function (data) {
     waypoints = data; //sanitize here ?
     console.log(waypoints);
-    socket.emit('yourWP', waypoints);
+    //socket.emit('staticWP', waypoints);
 
-    const msg = new std_msgs.Float64MultiArray();
 
     dt = []
     waypoints.forEach(wp => {
@@ -121,12 +137,12 @@ io.on('connection', function (socket) {
       dt.push(wp.latlong[1]);
     });
 
-    msg.data = Float64Array.from(dt);
-    wp_pub.publish(msg);
+    wps_msg.data = Float64Array.from(dt);
+    wp_pub.publish(wps_msg);
   });
 
-  socket.on('gimmeWP', function (data) {
-    socket.emit('yourWP', waypoints);
+  socket.on('getStaticWP', function (data) {
+    socket.emit('staticWP', waypoints);
   });
 
   socket.on('gimmeSettings', function (data) {
@@ -139,15 +155,34 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('settings', settings);
   });
 
+  var tgt_msg = new geometry_msgs.Pose2D();
+  tgt_msg.x = 48.4305;
+  tgt_msg.y = -4.6127;
+
   socket.on('Routing', function(data) {
     var msg = new std_msgs.Bool();
     msg.data = data;
-    console.log(data);
+    routing_tgt_pub.publish(tgt_msg);
     routing_pub.publish(msg);
-  })
+    /*if(data) {
+    } else {
+      wp_pub.publish(msg);
+    }*/
+  });
+  
+  socket.on("routingTarget", function(data){
+    tgt_msg.x = data.lat;
+    tgt_msg.y = data.lon;
+    routing_tgt_pub.publish(tgt_msg)
+  });
   setInterval(function () {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
+    if (newWps) {
+      console.log("ding")
+      socket.emit('staticWP', waypoints);
+      newWps = false;
+    }
   }, 1000);
   
 });

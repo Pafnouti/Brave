@@ -46,7 +46,7 @@ html
         .navbar-nav
           a.nav-item.nav-link#navStats(href='/telemetry') Stats
           a.nav-item.nav-link#navMission(href='/mission') Mission
-          a.nav-item.nav-link#navSettings(href='/settings') Configuration
+          a.nav-item.nav-link#navSettings(href='/settings') Settings
           div#wpid
       div.form-check.form-switch
         input.form-check-input#routing(type='checkbox')
@@ -54,3 +54,5 @@ html
 
     div.container-fluid
       block content
+    
+  script(src='/js/utils.js')

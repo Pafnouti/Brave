@@ -25,14 +25,3 @@ socket.on('state', function (newState) {
     lat0 = newState.lat0;
     lon0 = newState.lon0;
 });
-
-window.onload = function() {
-    $("#routing").on('toggle', (function() {
-        if ($('#routing').is(":checked"))
-        {
-            socket.emit('Routing', true)
-        } else {
-            socket.emit('Routing', false)
-        }
-    }));
-}

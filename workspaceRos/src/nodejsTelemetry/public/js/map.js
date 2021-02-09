@@ -5,13 +5,13 @@ var wayPointsList = [];
 var staticWaypoints = [];
 
 /// Socket.io
-socket.on("yourWP", function(data) {
+socket.on("staticWP", function(data) {
     currID = data.length;
     updateStaticWPList(data);
     updatePath();
 });
 
-socket.emit("gimmeWP");
+socket.emit("getStaticWP");
 
 socket.on('waypoints', function(wp){
     $('#newWPModal').modal('show');
@@ -106,6 +106,24 @@ var targetIcon = L.icon({
 var myMovingMarker = new L.marker([48.370954, -4.480665], {
     icon: boatIcon
 }).addTo(map);
+
+var routingTarget = new L.marker([48.4305, -4.6127], {
+    icon: targetIcon,
+    draggable: 'true'
+
+}).addTo(map);
+
+routingTarget.on('dragend', function (event) {
+    var position = routingTarget.getLatLng();
+    routingTarget.setLatLng(position, {
+        draggable: 'true'
+    }).update();
+    latlong = {
+        lat:position.lat, 
+        lon:position.lng
+    };
+    socket.emit('routingTarget', latlong)
+});
 
 var addingWp = false;
 map.on('click', function (e) {

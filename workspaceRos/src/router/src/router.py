@@ -64,7 +64,7 @@ class Router():
         self.state = (0, 0)
 
         
-        self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)
+        self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)²
 
         rospy.Subscriber('/Routing', Bool, self._callback_routing)
         rospy.Subscriber('/Target', Pose2D, self._callback_target)

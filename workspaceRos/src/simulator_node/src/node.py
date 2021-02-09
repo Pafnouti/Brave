@@ -88,11 +88,11 @@ while 1:
     drawBuoy(a.flatten(), color=(255,0,0))
     drawBuoy(b.flatten(), color=(255,100,100))
     sailboat.step(0, u, .1, np.array([local_wind_x, local_wind_y]))
-    if counter >= 30:
+    if counter >= 10:
         p = Pose2D()
         p.x = float(sx)
         p.y = float(sy)
-        p.theta = float(-sailboat.theta)
+        p.theta = float(-np.pi/2+sailboat.theta)
         state_pub.publish(p)
         counter = 0
     counter += 1
