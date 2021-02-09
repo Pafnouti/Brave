@@ -3,7 +3,7 @@
 import rospy
 import numpy as np
 import json
-from traj_generator.msg import TrajInfo
+from ais_simulator.msg import TrajInfo
 from std_msgs.msg import String
 
 # Origine repère Ty Colo
@@ -24,6 +24,7 @@ class AISSimulator():
         self.longitude = lon0
         self.vitesse_nd = 0
         self.heading = 0
+        self.imo = 0
 
 
     def _callback_traj_info(self, msg):
@@ -37,9 +38,10 @@ class AISSimulator():
         self.longitude = msg.longitude
         self.vitesse_nd = msg.vitesse_nd
         self.heading = msg.heading
+        self.imo = msg.imo
 
 
-    def AIVDM_gen(self, nb_sec, lat, longi, v_nd, heading):
+    def AIVDM_gen(self, nb_sec, lat, longi, v_nd, heading, imo):
         """
         Fonction simulant un AIS et retournant un dictionnaire contenant les informations 
         des trames AIVDM, en supposant qu'elles aient déjà été prétraitées par libais.
@@ -51,7 +53,7 @@ class AISSimulator():
             "scaled": True,
             "status": 0,
             "status_text": "Under way using engine",
-            "imo": 9290610,
+            "imo": 0,
             "shipname": "Cargo to avoid",
             "shiptype": 70,
             "to_bow": 0.45,
@@ -87,6 +89,8 @@ class AISSimulator():
         aivdm["lon"] = longi
         # VITESSE PAR RAPPORT AU FOND (en noeuds)
         aivdm["speed"] = v_nd
+        # IDENTIFIANT IMO
+        aivdm["imo"] = imo
 
         return aivdm
 
@@ -98,7 +102,8 @@ class AISSimulator():
         longi = self.longitude
         v_nd = self.vitesse_nd
         heading = self.heading
-        aivdm_dictionary = self.AIVDM_gen(nb_sec, lat, longi, v_nd, heading)
+        imo = self.imo
+        aivdm_dictionary = self.AIVDM_gen(nb_sec, lat, longi, v_nd, heading, imo)
         print(aivdm_dictionary)
 
         # On publie la trame AIVDM sous forme de String sur le topic '/AIVDM'

@@ -51,6 +51,7 @@ class TrajGenerator():
         self.y = self.y0
         self.vitesse_nd = 0
         self.heading = 0
+        self.imo = 9403815
 
         self.t0 = rospy.get_rostime() # on initialise le temps
         self.time_simu = 0
@@ -195,6 +196,7 @@ class TrajGenerator():
         trajectory_info.longitude = self.longitude
         trajectory_info.vitesse_nd = self.vitesse_nd
         trajectory_info.heading = self.heading
+        trajectory_info.imo = self.imo
 
         print("Temps réel écoulé depuis le début de la simulation (secondes)")
         print(int(self.time_simu))
@@ -206,10 +208,13 @@ class TrajGenerator():
         print(self.vitesse_nd)
         print("Cap (degrés)")
         print(self.heading)
+        print("ID")
+        print(self.imo)
 
         pos_nav = Pose2D()
         pos_nav.x = self.x
         pos_nav.y = self.y
+        pos_nav.theta = self.heading
 
         self.pub_trajInfo.publish(trajectory_info)
         self.pub_posNavire.publish(pos_nav)

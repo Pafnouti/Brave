@@ -5,6 +5,7 @@ import numpy as np
 import json
 import yaml
 from std_msgs.msg import String
+from poly_generator.msg import UniquePolygon
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import Polygon
 
@@ -30,6 +31,7 @@ class PolyGenerator():
         self.longitude = lon0
         self.vitesse_nd = 0
         self.heading = 0
+        self.imo = 0
 
 
     def _callback_aivdm(self, msg):
@@ -48,7 +50,7 @@ class PolyGenerator():
         self.longitude = aivdm_dictionary["lon"]
         self.vitesse_nd = aivdm_dictionary["speed"]
         self.heading = aivdm_dictionary["heading"]
-
+        self.imo = aivdm_dictionary["imo"]
     
     
     def WGS84_to_cart(self, lat, lon):
@@ -82,8 +84,6 @@ class PolyGenerator():
         d1 = d4 = v * deltaT
         d2 = d3 = v * (deltaT + eps)
 
-
-        # CORRIGER VALEUR DE k !!!!
         k = (heading-alpha)//90
 
         pt1 = Point32()
@@ -122,9 +122,15 @@ class PolyGenerator():
         longi = self.longitude
         v_nd = self.vitesse_nd
         heading = self.heading
+        imo = self.imo
 
         poly = self.poly_gen(nb_sec, lat, longi, v_nd, heading)
-        self.pub_poly.publish(poly)
+
+        unique_poly = UniquePolygon()
+        unique_poly.id = imo
+        unique_poly.poly = poly
+
+        self.pub_poly.publish(unique_poly)
 
 
 if __name__ == "__main__":
