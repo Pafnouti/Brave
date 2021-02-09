@@ -101,7 +101,7 @@ class Navigator():
         rospy.Subscriber('/State', Pose2D, self._callback_state)
         rospy.Subscriber('/Waypoints', Float64MultiArray,
                          self._callback_waypoints)
-
+        self.pub_wp = rospy.Publisher('/Waypoints', Float64MultiArray)
         self.rate = rospy.Rate(rosrate)
 
     def validate_wp(self, m, a, b):
@@ -114,15 +114,18 @@ class Navigator():
         self.m = np.array([msg.x, msg.y])
         
         if self.validate_wp(self.m, np.array(self.a), np.array(self.b)):
-            self.a = self.b
-            self.waypoint_index += 1
-            self.b = self.waypoints[self.waypoint_index]
-            self.line = Line()
-            self.line.xa = self.a[0]
-            self.line.ya = self.a[1]
-            self.line.xb = self.b[0]
-            self.line.yb = self.b[1]
-            self.pub_line.publish(self.line)
+            if self.waypoint_index < len(self.waypoints) - 1:
+                self.a = self.b
+                self.waypoint_index += 1
+                self.b = self.waypoints[self.waypoint_index]
+                self.line = Line()
+                self.line.xa = self.a[0]
+                self.line.ya = self.a[1]
+                self.line.xb = self.b[0]
+                self.line.yb = self.b[1]
+                self.pub_line.publish(self.line)
+            else:
+                self.setWPTrianglePattern()
 
     def _callback_waypoints(self, msg):
         self.waypoints = []
@@ -142,6 +145,19 @@ class Navigator():
         self.line.yb = self.b[1]
         self.pub_line.publish(self.line)
 
+    def setWPTrianglePattern(self):
+        msg = Float64MultiArray()
+        points = [
+            self.m + np.array([0, 10]),
+            self.m + np.array([10, -10]),
+            self.m + np.array([-10, -10]),
+            self.m + np.array([0, 0])
+        ]
+        latlng = np.array([cart_to_WGS84(x, y) for x, y in points])
+        msg.data = latlng.flatten()
+        self.pub_wp.publish(msg)
+        
+
     def main(self):
         msg = Int32()
         msg.data = self.waypoint_index
@@ -154,7 +170,7 @@ if __name__ == "__main__":
 
     lat0 = rospy.get_param("/origin/lat")
     lon0 = rospy.get_param("/origin/lon")
-
+    navigator.setWPTrianglePattern()
     while not rospy.is_shutdown():
         navigator.main()
         navigator.rate.sleep()

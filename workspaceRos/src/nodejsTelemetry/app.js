@@ -52,12 +52,12 @@ var settings = [
   },
 ];
 
-var std_msgs;
+
 var wp_pub;
 var routing_pub;
 var routing_tgt_pub;
 
-std_msgs = rosnodejs.require('std_msgs').msg;
+const std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
 
 
@@ -71,8 +71,20 @@ var state = {
   lat0: 48.431775,
   lon0: -4.615529
 };
+
+var cartToWGS84 = function(x, y) {
+  EARTH_RADIUS = 6371000.
+  EPSILON = 0.00000000001
+  lat = y*180./pi/EARTH_RADIUS+state.lat0
+  lon = abs(lat-90.) < EPSILON || abs(lat+90.) < EPSILON ? 0 : (x/EARTH_RADIUS)*(180./pi)/cos((pi/180.)*(lat))+state.lon0
+
+  return [lat, lon]
+}
+
 var currWP = 0;
 var newWps = false;
+var newPoly = false;
+var polys = []
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
@@ -113,6 +125,25 @@ rosnodejs.initNode('telemetry_node')
       console.log("Waypoints received on /Waypoints topic.")
       waypoints = wps;
       newWps = true;
+    });
+
+    let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
+      ll = []
+      data.poly.points.forEach(element => {
+        ll.push(cartToWGS84(element.x, element.y));
+      });
+      found = false
+      for (let index = 0; index < polys.length; index++) {
+        const element = polys[index];
+        if (element.id==data.id) {
+          element = ll
+          found = true
+        }
+      }
+      if (!found) {
+        polys.push(ll)
+      }
+      newPoly = true
     });
 
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
@@ -180,9 +211,12 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
     if (newWps) {
-      console.log("ding")
       socket.emit('staticWP', waypoints);
       newWps = false;
+    }
+    if (newPoly) {
+      socket.emit('newPolys', polys)
+      newPoly = false;
     }
   }, 1000);
   

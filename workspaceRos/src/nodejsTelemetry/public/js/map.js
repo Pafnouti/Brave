@@ -3,6 +3,7 @@ $("#navMission").addClass("active")
 
 var wayPointsList = [];
 var staticWaypoints = [];
+var polys = [];
 
 /// Socket.io
 socket.on("staticWP", function(data) {
@@ -23,6 +24,19 @@ socket.on('waypoints', function(wp){
 });
 
 socket.on("currentTarget", function (data) {
+    var id = Number(data.data);
+    if(id && id != currWP) {
+        console.log(id);
+        staticWaypoints.forEach(element => {
+            element.marker.setIcon(new L.Icon.Default());
+        });
+        staticWaypoints[id].marker.setIcon(targetIcon);
+        $("#wpid").text(data.data);
+        currWP = id;
+    }
+});
+
+socket.on("newPolys", function (data) {
     var id = Number(data.data);
     if(id && id != currWP) {
         console.log(id);
@@ -313,6 +327,17 @@ var updateStaticWPList = function (wps) {
     decoratorStatic.setPaths(polylineStatic);
 }
 
+var updatePolyList = function(newPolys) {
+    p = []
+    polys.forEach(element => {
+        map.remove(element);
+    });
+    newPolys.forEach(element => {
+        var pl = L.Polygon(element);
+        polys.append(pl);
+        pl.addTo(map);
+    });
+}
 /// Initialize
 
 wayPointsList = [

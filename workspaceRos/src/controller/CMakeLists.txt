@@ -58,6 +58,7 @@ add_message_files(
    Meteo.msg
    Wind.msg
    State.msg
+   UniquePolygon.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -78,6 +79,7 @@ add_message_files(
 generate_messages(
    DEPENDENCIES
    std_msgs
+   geometry_msgs
  )
 
 ################################################

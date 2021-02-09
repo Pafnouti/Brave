@@ -106,5 +106,5 @@ while 1:
         state_pub.publish(p)
         counter = 0
     counter += 1
-    drawArrow(180 + 180/np.pi * np.arctan2(local_wind_y, local_wind_x), sailboat.x + np.array([50, 0]), scale=.1)
+    drawArrow(270 - rad2deg(np.arctan2(local_wind_y, local_wind_x)), sailboat.x + np.array([50, 0]), scale=.1)
     pygame.display.flip()
