@@ -4,7 +4,7 @@ import rospy
 
 from routeur import *
 
-from controller.msg import Line
+from controller.msg import Line, Wind
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64MultiArray, Int32
@@ -13,28 +13,15 @@ from std_msgs.msg import Float64MultiArray, Int32
 
 lon0, lat0 = rospy.get_param('origin')['lon'], rospy.get_param('origin')['lat']
 
-def north2east(x):
-    """
-    Input:
-    ------
-    Wind direction in degres, 0 is pointing north
-    clockwise rotation
-
-    Return:
-    -------
-    Angle of the wind in rad, in trigonometric circle
-    """
-
-    x = deg2rad(x)
-    return sawtooth(pi/2 - x)
+EARTH_RADIUS = 6371000.
 
 def WGS84_to_cart(lat, lon):
     """
     Input: gps coord decimal lat, lon
     Return: cartesian coord x, y with (lat0, lon0) the origin
     """
-    x = (pi/180.)*EARTH_RADIUS*(lon-lon0)*cos((pi/180.)*lat)
-    y = (pi/180.)*EARTH_RADIUS*(lat-lat0)
+    x = (np.pi/180.)*EARTH_RADIUS*(lon-lon0)*np.cos((np.pi/180.)*lat)
+    y = (np.pi/180.)*EARTH_RADIUS*(lat-lat0)
     return x, y
 
 def cart_to_WGS84(x, y):
@@ -43,11 +30,11 @@ def cart_to_WGS84(x, y):
     Return: gps coord decimal lat, lon
     """
     EPSILON = 0.00000000001
-    lat = y*180./pi/EARTH_RADIUS+lat0
-    if abs(lat-90.) < EPSILON or abs(lat+90.) < EPSILON:
+    lat = y*180./np.pi/EARTH_RADIUS+lat0
+    if np.abs(lat-90.) < EPSILON or np.abs(lat+90.) < EPSILON:
         lon = 0
     else:
-        lon = (x/EARTH_RADIUS)*(180./pi)/cos((pi/180.)*(lat))+lon0
+        lon = (x/EARTH_RADIUS)*(180./np.pi)/np.cos((np.pi/180.)*(lat))+lon0
     return lat, lon
 
 
@@ -64,11 +51,12 @@ class Router():
         self.state = (0, 0)
 
         
-        self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)²
+        self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)
 
         rospy.Subscriber('/Routing', Bool, self._callback_routing)
         rospy.Subscriber('/Target', Pose2D, self._callback_target)
         rospy.Subscriber('/State', Pose2D, self._callback_state)
+        rospy.Subscriber('/Wind', Wind, self._callback_wind)
 
 
     def _callback_target(self, msg):
@@ -83,11 +71,17 @@ class Router():
         self.activated = msg.data
         print('cb routage')
         self.main()
+
+    def _callback_wind(self, msg):
+        self.routeur.set_weahter(msg.wind_speed, msg.wind_direction)
+        #print('set weather to : ', msg.wind_speed, msg.wind_direction)
     
     def main(self):
         if self.activated and self.got_target:
             print('routing...')
-            traj, iso = self.routeur.run(self.state, self.target)
+
+            B = WGS84_to_cart(self.target[0], self.target[1])
+            traj, iso = self.routeur.run(self.state, B)
             self.wps = Float64MultiArray()
             wps_tmp = []
             for i in range(len(traj[0])):
