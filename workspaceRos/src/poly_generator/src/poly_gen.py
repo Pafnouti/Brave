@@ -2,11 +2,15 @@
 
 import rospy
 import numpy as np
-from rospy_message_converter import message_converter
+import json
+import yaml
 from std_msgs.msg import String
+from poly_generator.msg import UniquePolygon
 from geometry_msgs.msg import Point32
 from geometry_msgs.msg import Polygon
 
+
+EARTH_RADIUS = 6371000.
 
 # Origine repère Ty Colo
 lat0 = 48.431775
@@ -23,10 +27,11 @@ class PolyGenerator():
         self.rate = rospy.Rate(rosrate) # fréquence à laquelle le main se répète : rosrate = 10Hz (boucle toutes les 100 ms)
 
         self.nb_sec = 0
-        self.latitude = # à compléter
-        self.longitude = # à compléter
-        self.vitesse_nd = # à compléter
-        self.heading = # à compléter
+        self.latitude = lat0
+        self.longitude = lon0
+        self.vitesse_nd = 0
+        self.heading = 0
+        self.imo = 0
 
 
     def _callback_aivdm(self, msg):
@@ -35,15 +40,17 @@ class PolyGenerator():
         _callback_aivdm les récupère afin de calculer le polygone associé.
         """
 
-        # On convertit le msg ROS (String) en str pour récupérer les différentes informations utiles au calcul du polygone
-        aivdm_dictionary = message_converter.convert_ros_message_to_dictionary(msg)
+        # On convertit le msg ROS (String) en dictionary pour récupérer les différentes informations utiles au calcul du polygone
+        data = yaml.load(str(msg))
+        aivdm_dictionary = json.loads(data["data"])
+        print(aivdm_dictionary)
 
         self.nb_sec = aivdm_dictionary["second"]
         self.latitude = aivdm_dictionary["lat"]
         self.longitude = aivdm_dictionary["lon"]
         self.vitesse_nd = aivdm_dictionary["speed"]
         self.heading = aivdm_dictionary["heading"]
-
+        self.imo = aivdm_dictionary["imo"]
     
     
     def WGS84_to_cart(self, lat, lon):
@@ -77,8 +84,6 @@ class PolyGenerator():
         d1 = d4 = v * deltaT
         d2 = d3 = v * (deltaT + eps)
 
-
-        # CORRIGER VALEUR DE k !!!!
         k = (heading-alpha)//90
 
         pt1 = Point32()
@@ -117,9 +122,15 @@ class PolyGenerator():
         longi = self.longitude
         v_nd = self.vitesse_nd
         heading = self.heading
+        imo = self.imo
 
-        cone = self.poly_gen(nb_sec, lat, longi, v_nd, heading)
-        self.pub_poly.publish(poly)
+        poly = self.poly_gen(nb_sec, lat, longi, v_nd, heading)
+
+        unique_poly = UniquePolygon()
+        unique_poly.id = imo
+        unique_poly.poly = poly
+
+        self.pub_poly.publish(unique_poly)
 
 
 if __name__ == "__main__":

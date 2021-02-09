@@ -2,9 +2,13 @@
 
 import rospy
 import numpy as np
-from rospy_message_converter import message_converter
-from traj_generator.msg import TrajInfo
+import json
+from ais_simulator.msg import TrajInfo
 from std_msgs.msg import String
+
+# Origine repère Ty Colo
+lat0 = 48.431775
+lon0 = -4.615529
 
 class AISSimulator():
 
@@ -16,16 +20,17 @@ class AISSimulator():
         self.rate = rospy.Rate(rosrate) # fréquence à laquelle le main se répète : rosrate = 10Hz (boucle toutes les 100 ms)
 
         self.nb_sec = 0
-        self.latitude = # à compléter
-        self.longitude = # à compléter
-        self.vitesse_nd = # à compléter
-        self.heading = # à compléter
+        self.latitude = lat0
+        self.longitude = lon0
+        self.vitesse_nd = 0
+        self.heading = 0
+        self.imo = 0
 
 
-    def _callback_traj_point(self, msg):
+    def _callback_traj_info(self, msg):
         """
         Lorsque les informations de trajectoire du navire à éviter sont envoyées sur le topic '/trajInfo', 
-        la fonction _callback_traj_point les récupère pour générer la trame AIVDM associée.
+        la fonction _callback_traj_info les récupère pour générer la trame AIVDM associée.
         """
 
         self.nb_sec = msg.nb_sec
@@ -33,9 +38,10 @@ class AISSimulator():
         self.longitude = msg.longitude
         self.vitesse_nd = msg.vitesse_nd
         self.heading = msg.heading
+        self.imo = msg.imo
 
 
-    def AIVDM_gen(self, nb_sec, lat, longi, v_nd, heading):
+    def AIVDM_gen(self, nb_sec, lat, longi, v_nd, heading, imo):
         """
         Fonction simulant un AIS et retournant un dictionnaire contenant les informations 
         des trames AIVDM, en supposant qu'elles aient déjà été prétraitées par libais.
@@ -47,7 +53,7 @@ class AISSimulator():
             "scaled": True,
             "status": 0,
             "status_text": "Under way using engine",
-            "imo": 9290610,
+            "imo": 0,
             "shipname": "Cargo to avoid",
             "shiptype": 70,
             "to_bow": 0.45,
@@ -83,6 +89,8 @@ class AISSimulator():
         aivdm["lon"] = longi
         # VITESSE PAR RAPPORT AU FOND (en noeuds)
         aivdm["speed"] = v_nd
+        # IDENTIFIANT IMO
+        aivdm["imo"] = imo
 
         return aivdm
 
@@ -94,10 +102,12 @@ class AISSimulator():
         longi = self.longitude
         v_nd = self.vitesse_nd
         heading = self.heading
-        aivdm_dictionary = self.AIVDM_gen(nb_sec, lat, longi, v_nd, heading)
+        imo = self.imo
+        aivdm_dictionary = self.AIVDM_gen(nb_sec, lat, longi, v_nd, heading, imo)
+        print(aivdm_dictionary)
 
         # On publie la trame AIVDM sous forme de String sur le topic '/AIVDM'
-        aivdm_msg = message_converter.convert_dictionary_to_ros_message('std_msgs/String', aivdm_dictionary)
+        aivdm_msg = json.dumps(aivdm_dictionary) # converts dictionary into str
         self.pub_aivdm.publish(aivdm_msg)
 
 
