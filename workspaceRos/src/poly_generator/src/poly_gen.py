@@ -22,7 +22,7 @@ class PolyGenerator():
     def __init__(self, rosrate=10):
 
         rospy.Subscriber('/AIVDM', String, self._callback_aivdm)
-        self.pub_poly = rospy.Publisher('/poly', Polygon, queue_size=10) 
+        self.pub_poly = rospy.Publisher('/Poly', UniquePolygon, queue_size=10) 
 
         self.rate = rospy.Rate(rosrate) # fréquence à laquelle le main se répète : rosrate = 10Hz (boucle toutes les 100 ms)
 
@@ -128,6 +128,7 @@ class PolyGenerator():
 
         unique_poly = UniquePolygon()
         unique_poly.id = imo
+        
         unique_poly.poly = poly
 
         self.pub_poly.publish(unique_poly)

@@ -30,6 +30,5 @@ socket.on('state', function (newState) {
 
 socket.on('cargos', function (data) {
     //works if one cargo only
-    console.log(data);
     cargos = [data];
 });

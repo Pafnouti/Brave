@@ -77,7 +77,7 @@ var cartToWGS84 = function(x, y) {
   EPSILON = 0.00000000001
   lat = y*180./pi/EARTH_RADIUS+state.lat0
   lon = abs(lat-90.) < EPSILON || abs(lat+90.) < EPSILON ? 0 : (x/EARTH_RADIUS)*(180./pi)/cos((pi/180.)*(lat))+state.lon0
-
+  
   return [lat, lon]
 }
 
@@ -85,7 +85,9 @@ var currWP = 0;
 var newWps = false;
 var newPoly = false;
 var newLogs = false;
+var newCargo = true;
 var polys = [];
+var cargos = [];
 var logs = [];
 var allLogs = [];
 // Register node with ROS master
@@ -153,6 +155,11 @@ rosnodejs.initNode('telemetry_node')
         polys.push(ll)
       }
       newPoly = true
+    });
+
+    let subCargos = rosNode.subscribe("/posNavire", geometry_msgs.Pose2D, (data) => {
+      cargos = [data];
+      newCargo = true;
     });
 
     wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
@@ -239,6 +246,13 @@ io.on('connection', function (socket) {
       });
       logs = [];
       newLogs = false;
+    }
+    if (newCargo) {
+      cargos.forEach(element => {
+        socket.emit('cargos', element)
+      });
+      cargos = [];
+      newCargo = false;
     }
   }, 1000);
   

@@ -64,9 +64,7 @@ cargoIcon.options.iconSize = [61 * size, 100 * size];
 var cargoMarkers = [];
 var updateCargos = function() {
     cargoMarkers.forEach(element => {
-        if (element.marker) {
-            map.removeLayer(element.marker);
-        }
+        map.removeLayer(element);
     });
     cargoMarkers.length = 0;
     cargos.forEach(element => {
@@ -81,7 +79,7 @@ var updateCargos = function() {
         var movingCargo = new L.marker([clat, clon], {
             icon: cargoIcon
         }).addTo(map);
-        var angle = cargo.theta;
+        var angle = element.theta;
         movingCargo.setRotationAngle(angle);
         cargoMarkers.push(movingCargo);
     });
