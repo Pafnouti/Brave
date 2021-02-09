@@ -1,0 +1,12 @@
+<launch> 
+	<group ns="origin">
+      <param name="lat" value="48.431775" />
+      <param name="lon" value="-4.615529" />    
+    </group>
+	
+	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>
+	<node name="wind_estimator" pkg="wind_estimator_node" type="estimator.py" output="screen"/>
+	<node name="nodejs" pkg="nodejsTelemetry" type="launcher.py" output="screen" cwd="node"/>
+
+	<node name="simulator" pkg="simulator_node" type="node.py" output="screen"/>
+</launch>
