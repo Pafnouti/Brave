@@ -97,22 +97,15 @@ class Routeur():
 
         
         #alpha = alphashape.optimizealpha(points)
-        #print(alpha)
-        alpha = 0.6 - 0.05*pas
-        if pas < 1:
-            alpha = 0.99
-        elif pas > 100:
-            alpha = 0.01
-        elif pas < 10:
-            alpha = 0.9-0.15*pas
-        else: 
-            alpha = 0.080 - 8e-4*pas
-        if pas < 0:
-            pas = 0.001
-
+        
+        # réglage d'alpha avec une fonction empirique
         alpha = self.set_alpha(pas)*0.9
+
         #print('Alpha/pas ', alpha, pas)
         #a_s = np.array(list(alphashape.alphashape(points, alpha).exterior.coords))
+        
+
+        # Calcul de l'alphashape
         ok = False
         while not ok:
             try:
@@ -125,19 +118,20 @@ class Routeur():
         bnds_m = []
        
         #plt.scatter(points[:, 0], points[:, 1])
-        
 
+        # idée d'optimisation -> problème : on obtient les points à l'intérieur de la zone, mais comment séléctionner la bonne ligne ?
+        # Comment avoir la notion de ligne ?
+        # pts_coll = MultiPoint(a_s)
+        # inter = zone.intersection(pts_coll)
+        
+        # on se place au début d'une ligne
         i = 0
         bnd = []
         k = 0
-
         while zone.contains(Point(a_s[k, 0], a_s[k, 1])) and k < a_s.shape[0] - 1:
             k += 1
         
-        pts_coll = MultiPoint(a_s)
-        inter = zone.intersection(pts_coll)
-
-
+        # on regroupe par ligne
         for j in range(a_s.shape[0]):
             i = (j + k)%a_s.shape[0]
             if zone.contains(Point(a_s[i, 0], a_s[i, 1])):
@@ -150,12 +144,11 @@ class Routeur():
         if len(bnd) >= 2:
             bnds.append(bnd)
 
-
+        # on séléctionne celle dont la moyenne des distances à A est la plus grande
         for bnd in bnds:
             bnd = np.array(bnd)
             XB = np.array(((0, 0))).reshape(1,-1)
             bnds_m.append(np.mean(cdist(bnd, XB, 'euclidean')))
-  
         bnd = np.array(bnds[bnds_m.index(max(bnds_m))])
 
         # plt.plot(bnd[:, 0], bnd[:, 1])
@@ -166,25 +159,29 @@ class Routeur():
     def run(self, A, B, def_ang=50, pas_s=0.5, nb_iso=10):
         print('Starting...')
 
-
+        # départ et arrivé
         A = [A[0], A[1]]
         B = [B[0], B[1]]
 
+        # réglage du pas un peu empirique
         dAB = distanceAB(A, B)
         print('Distance à parcourir : ', dAB)
         pas_s = dAB/(nb_iso*self.polaire(45*np.pi/180, self.weather(pos=A)))*60/def_ang
 
+        # la variables points stocke les points des isochrones 
         points = [np.zeros((1, 2))]
         points[-1][0, 0] = A[0]
         points[-1][0, 1] = A[1]
 
-
+        # angles donne une discrétisation de def_ang angles sur 2pi ou 3/4 de 2pi
         angles = np.linspace(0, 2*np.pi, def_ang)
         angles_2 = np.linspace(0, 3/2*np.pi, int(3/4*def_ang))
+
+        # all_points permet de retrouver le chemin
         all_points = [A]
         hist_points = {0:-1}
 
-
+        # c'est le cercle dans lequelle on peut faire les calculs, pour optimiser et que le voilier ne cherche pas à aller dans la direction opposée du point d'arrivée
         C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
         cercle = []
         r = distanceAB(A, B)/2*1.2
@@ -194,6 +191,7 @@ class Routeur():
         cercle_np = np.array(cercle)
         cercle = Polygon(cercle_np)
 
+        # le deuxième cercle sert pour généré les points, le premier, plus petit pour selectionner les lignes (cf alphashape)
         cercle_2 = []
         r = r*1.2
         for a in angles:
@@ -202,41 +200,47 @@ class Routeur():
         cercle2_np = np.array(cercle_2)
         cercle2 = Polygon(cercle2_np)
 
+
+
         i_iso = 0
         target_in = False
         target_near = False
-        pas2 = pas_s
+        pas2 = pas_s #stockage du pas pour le réduire quand on s'approche de l'arrivée
 
 
+        # boucle principale
         while i_iso < 2*nb_iso and not target_in:
             if target_near:
                 pas_s = pas2/3
             iso = []
 
+            # pour tous les points de l'isochrone précédente 
             for j in range(points[-1].shape[0]):
                 pt = points[-1][j, :].tolist()
                 i_pt = all_points.index(pt)
-               
+
+                # pour tous les angles 
                 for a in angles:
                     x, y = polToCart(a, self.polaire(a, self.weather(pos = pt))*pas_s)
                     x += pt[0]
                     y += pt[1]
 
+                    # ou pour 3/4 de cercle plutot ;)
                     if (abs(getAngleABC(A, pt, (x, y))) > np.pi/4) or i_iso < 1:
                         iso.append((x, y))
                         all_points.append([x, y])
                         hist_points[len(all_points)-1] = i_pt
-
+            
+            # passage en numpy
             tmp_points = np.zeros((len(iso), 2))
             for i in range(len(iso)):
                 tmp_points[i][0] = iso[i][0]
                 tmp_points[i][1] = iso[i][1]
             
-            
-            
+            # pour toutes les iso sauf la première
             if i_iso > 0:
                 print('computing iso : {}'.format(i_iso))
-                tmp_points = np.array(cercle2.intersection(MultiPoint(tmp_points)))
+                tmp_points = np.array(cercle2.intersection(MultiPoint(tmp_points))) # on enlève les points zen dehors du plus grand cerlce
                 # plt.plot(cercle_np[:, 0], cercle_np[:, 1])
                 pts = self.compute_iso(tmp_points, cercle, A, B, pas=pas_s)
             else:
@@ -244,6 +248,8 @@ class Routeur():
 
             points.append(pts)
             i_iso += 1
+
+            # conditions d'arrêt
             for i in range(pts.shape[0]):
                 if distanceAB(B, pts[i, :]) < 0.2*dAB/nb_iso:
                     target_in = True
@@ -260,6 +266,8 @@ class Routeur():
         pts_to_check = np.vstack((points[-1], points[-2]))
         pt = pts_to_check[cdist([np.array(((B[0], B[1])))], pts_to_check).argmin()].tolist()
 
+
+        # on retrace la trajectoire
         i_pt = all_points.index(pt)
         traj_x, traj_y = [all_points[i_pt][0]], [all_points[i_pt][1]]
         while hist_points[i_pt] != -1:
