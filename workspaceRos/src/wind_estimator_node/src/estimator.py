@@ -72,8 +72,6 @@ class WindEstimator():
         else :
             self.initDeque += 1
 
-        print("received")
-
     def main(self):
         if self.initDeque >= 1:
             twd = mean(self.TWD_list)

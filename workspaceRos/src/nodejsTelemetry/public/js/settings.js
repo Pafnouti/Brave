@@ -33,7 +33,6 @@ socket.on("yourSettings", function (data) {
 socket.emit("gimmeSettings");
 
 socket.on("settings", function(data) {
-    console.log("received");
     $('#newSettingsModal').modal('show');
     $("#updateSocketSettings").click(function (event) {
         $('#newSettingsModal').modal('hide');
