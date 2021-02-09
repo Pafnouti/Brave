@@ -5,13 +5,13 @@ var wayPointsList = [];
 var staticWaypoints = [];
 
 /// Socket.io
-socket.on("yourWP", function(data) {
+socket.on("staticWP", function(data) {
     currID = data.length;
     updateStaticWPList(data);
     updatePath();
 });
 
-socket.emit("gimmeWP");
+socket.emit("getStaticWP");
 
 socket.on('waypoints', function(wp){
     $('#newWPModal').modal('show');
