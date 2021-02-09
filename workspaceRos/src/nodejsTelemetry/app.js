@@ -164,6 +164,7 @@ io.on('connection', function (socket) {
     msg.data = data;
     routing_tgt_pub.publish(tgt_msg);
     routing_pub.publish(msg);
+    console.log(data);
     /*if(data) {
     } else {
       wp_pub.publish(msg);

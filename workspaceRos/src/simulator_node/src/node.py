@@ -4,6 +4,8 @@ import rospy
 from controller.msg import Line
 from geometry_msgs.msg import Pose2D
 
+from controller.msg import Meteo
+from trig import *
 from display import *
 import pygame
 from voilier import Sailboat, sawtooth
@@ -68,6 +70,7 @@ def line_callback(data):
 rospy.init_node("simulator")
 rospy.Subscriber("/Line", Line, line_callback)
 state_pub = rospy.Publisher("/State", Pose2D)
+wind_pub = rospy.Publisher("/ublox/WIMDA", Meteo)
 counter = 0
 while 1:
     for event in pygame.event.get():
@@ -84,11 +87,18 @@ while 1:
 
     local_wind_x= wind[0][int(cx/width * windGridSize), int(cy/height * windGridSize)]
     local_wind_y= wind[1][int(cx/width * windGridSize), int(cy/height * windGridSize)]
+
     u = sailboat.control(a, b)
     drawBuoy(a.flatten(), color=(255,0,0))
     drawBuoy(b.flatten(), color=(255,100,100))
     sailboat.step(0, u, .1, np.array([local_wind_x, local_wind_y]))
-    if counter >= 10:
+    if counter >= 60:
+        msg = Meteo()
+        msg.true_wind_direction = east2north(np.arctan2(local_wind_y, local_wind_x))
+        msg.wind_speed = np.sqrt(local_wind_x**2 + local_wind_y**2)
+        wind_pub.publish(msg)
+
+
         p = Pose2D()
         p.x = float(sx)
         p.y = float(sy)
