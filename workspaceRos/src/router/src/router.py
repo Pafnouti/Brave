@@ -81,6 +81,7 @@ class Router():
 
     def _callback_routing(self, msg):
         self.activated = msg.data
+        print('cb routage')
         self.main()
     
     def main(self):

@@ -9,6 +9,11 @@ import alphashape
 import pickle as pkl
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
+
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
 
 
 def distanceAB(A, B):
@@ -29,11 +34,13 @@ def cartToPol(x, y):
 
 
 class Routeur():
-    def __init__(self):
+    def __init__(self, nb_iso=10):
         self.data_polaire = [[0*np.pi/180, 10*np.pi/180, 30*np.pi/180, 40*np.pi/180, 90*np.pi/180, 110*np.pi/180, 150*np.pi/180, 180*np.pi/180], [0, 0, 0.4, 0.8, 1, 0.9, 0.88, 0.8]]
         self.inter_polaire = interpolate.interp1d(self.data_polaire[0], self.data_polaire[1], kind='cubic')
         self.vitesse_max = 5
         self.vent_ideal = 10
+
+        self.nb_iso = nb_iso
 
         polar = pd.read_csv("boat_Express.csv", sep=";")
         tws = polar.columns[1:].astype('float')
@@ -66,15 +73,35 @@ class Routeur():
         return (10, 0)
 
     def compute_iso(self, points, zone, A, B, d_min=4, line=True, pas=1):
-
-        a_s = np.array(list(alphashape.alphashape(points, 0.43*pas).exterior.coords))
+        
+        #alpha = alphashape.optimizealpha(points)
+        #print(alpha)
+        alpha = 0.6 - 0.05*pas
+        if pas < 1:
+            alpha = 0.99
+        elif pas > 100:
+            alpha = 0.01
+        elif pas < 10:
+            alpha = 0.9-0.09*pas
+        else: 
+            alpha = 0.086 - 7.7e-4*pas
+        if pas < 0:
+            pas = 0.001
+        #print(pas, alpha)
+        
+        a_s = np.array(list(alphashape.alphashape(points, alpha).exterior.coords))
         bnds = []
+
+
+        #plt.scatter(points[:, 0], points[:, 1])
+        #plt.plot(a_s[:, 0], a_s[:, 1])
+        #plt.show()
 
         i = 0
         bnd = []
 
         k = 0
-        while zone.contains(Point(a_s[k, 0], a_s[k, 1])):
+        while zone.contains(Point(a_s[k, 0], a_s[k, 1])) and k < a_s.shape[0] - 1:
             k += 1
 
         for j in range(a_s.shape[0]):
@@ -100,11 +127,15 @@ class Routeur():
 
         return bnd
 
-    def run(self, A, B, nb_traj=150, pas_s=0.5):
+    def run(self, A, B, def_ang=60, pas_s=0.5, nb_iso=10):
         print('Starting...')
+
 
         A = [A[0], A[1]]
         B = [B[0], B[1]]
+
+        dAB = distanceAB(A, B)
+        pas_s = dAB/(nb_iso*self.polaire(45*np.pi/180, self.weather(pos=A)))
 
         angle_AB = np.arctan2((B[1] - A[1]), (B[0] - A[0]))
 
@@ -113,7 +144,7 @@ class Routeur():
         points[-1][0, 1] = A[1]
 
 
-        angles = np.linspace(0, 2*np.pi, 60)
+        angles = np.linspace(0, 2*np.pi, def_ang)
         all_points = [A]
         hist_points = {0:-1}
 
@@ -130,7 +161,7 @@ class Routeur():
         target_in = False
 
 
-        while i_iso < 100 and not target_in:
+        while i_iso < 3 and not target_in:
 
             iso = []
 
@@ -139,7 +170,7 @@ class Routeur():
                 i_pt = all_points.index(pt)
 
                 for a in angles:
-                    x, y = polToCart(a, self.polaire(a)*pas_s)
+                    x, y = polToCart(a, self.polaire(a, self.weather(pos = pt))*pas_s)
                     x += pt[0]
                     y += pt[1]
 
@@ -153,14 +184,16 @@ class Routeur():
                 tmp_points[i][1] = iso[i][1]
 
             print('computing iso : {}'.format(i_iso))
-
-            pts = self.compute_iso(tmp_points, cercle, A, B, pas=pas_s)
-
+            
+            if i_iso > 0:
+                pts = self.compute_iso(tmp_points, cercle, A, B, pas=pas_s)
+            else:
+                pts = tmp_points
 
             points.append(pts)
             i_iso += 1
             for i in range(pts.shape[0]):
-                if distanceAB(B, pts[i, :]) < 2:
+                if distanceAB(B, pts[i, :]) < 10*pas_s:
                     target_in = True
                     print("Target in !")
 
@@ -176,7 +209,7 @@ class Routeur():
             traj_x.append(all_points[i_pt][0])
             traj_y.append(all_points[i_pt][1])
 
-        return (traj_x, traj_y), points
+        return (traj_x, traj_y), points, all_points
     
 
 
@@ -185,10 +218,21 @@ if __name__ == "__main__":
     
     routeur = Routeur()
 
-    routeur.polaire_plot()
+    #routeur.polaire_plot()
+    A, B = (0, 0), (354, 0)
 
-    traj, iso = routeur.run((0, 0), (24, 35))
+    C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
+    cercle = []
+    for a in np.linspace(0, 2*np.pi, 50):
+        p = C[0]+distanceAB(A, B)/2*np.cos(a), C[1]+distanceAB(A, B)/2*np.sin(a)
+        cercle.append(p)
+    cercle_np = np.array(cercle)
+
+    traj, iso, all_points = routeur.run(A, B)
     for i in iso:
         plt.plot(i[:, 0], i[:, 1])
     plt.plot(traj[0], traj[1])
+    plt.plot(cercle_np[:, 0], cercle_np[:, 1])
     plt.show()
+
+
