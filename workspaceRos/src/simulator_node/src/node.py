@@ -97,8 +97,7 @@ while 1:
         msg.true_wind_direction = east2north(np.arctan2(local_wind_y, local_wind_x))
         msg.wind_speed = np.sqrt(local_wind_x**2 + local_wind_y**2)
         wind_pub.publish(msg)
-
-
+        #rospy.loginfo("Boat is at {:.2f}, {:.2f}".format(sx, sy)) #Test logging system
         p = Pose2D()
         p.x = float(sx)
         p.y = float(sy)

@@ -104,9 +104,9 @@ class Sailboat(object):
         if abs(e) > r:  # on est en dehors du chenal
             self.q = np.sign(e)  # de quel cote on est de la ligne
         # si mon angle vent - angle boat < zeta
-        print(" TWD : {:.2f} Theta : {:.2f} TWA : {:.2f} ThetaBar : {:.2f}".format(self.twd, sawtooth(theta), self.twa, thetaBar))
+        #print(" TWD : {:.2f} Theta : {:.2f} TWA : {:.2f} ThetaBar : {:.2f}".format(self.twd, sawtooth(theta), self.twa, thetaBar))
         if np.abs(sawtooth(self.twd-thetaBar)) < zeta:
-            print("Je remonte le vent")
+            #print("Je remonte le vent")
             thetaBar = self.twd - self.q*zeta
         
         delta_rmax = 1

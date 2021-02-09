@@ -59,7 +59,7 @@ var routing_tgt_pub;
 
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
-
+const rosgraph_ms = rosnodejs.require('rosgraph_msgs').msg;
 
 var state = {
   x:0,
@@ -84,7 +84,10 @@ var cartToWGS84 = function(x, y) {
 var currWP = 0;
 var newWps = false;
 var newPoly = false;
-var polys = []
+var newLogs = false;
+var polys = [];
+var logs = [];
+var allLogs = [];
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
@@ -125,6 +128,12 @@ rosnodejs.initNode('telemetry_node')
       console.log("Waypoints received on /Waypoints topic.")
       waypoints = wps;
       newWps = true;
+    });
+
+    let subRosOut = rosNode.subscribe("/rosout", rosgraph_ms.Log, (data) => {
+      logs.push(data);
+      allLogs.push(data);
+      newLogs = true;
     });
 
     let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
@@ -176,6 +185,12 @@ io.on('connection', function (socket) {
     socket.emit('staticWP', waypoints);
   });
 
+  socket.on('getRosInfo', function (data) {
+    allLogs.forEach(element => {
+      socket.emit('rosInfo', element);
+    });
+  });
+
   socket.on('gimmeSettings', function (data) {
     socket.emit('yourSettings', settings);
   });
@@ -217,6 +232,13 @@ io.on('connection', function (socket) {
     if (newPoly) {
       socket.emit('newPolys', polys)
       newPoly = false;
+    }
+    if (newLogs) {
+      logs.forEach(element => {
+        socket.emit('rosInfo', element)
+      });
+      logs = [];
+      newLogs = false;
     }
   }, 1000);
   
