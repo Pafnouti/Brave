@@ -119,9 +119,12 @@ def ublox_node():
 		if frameType in pubDict_raw:
 
 			pubDict_raw[frameType].publish(line[6::])
-			pub = fillPublisher(frameType, line[6::])
-			if not pub is None:
+			try:
+				pub = fillPublisher(frameType, line[6::])
 				pubDict[frameType].publish(pub)
+			except:
+				pass
+				
 
 
 		rate.sleep()

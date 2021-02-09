@@ -1,0 +1,7 @@
+<launch> 
+	
+	<include file="$(find ublox)/launch/ublox.launch"/>
+	<include file="$(find maestro_node)/launch/maestro.launch"/>
+	<node name="router_node" pkg="router" type="router.py" output="screen"/>
+
+</launch>

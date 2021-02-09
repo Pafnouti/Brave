@@ -73,7 +73,7 @@ double PololuController::maestroGetAngle(int channel) {
 }
 
 void PololuController::maestroSetTarget(int channel, double target) {
-    lock_guard<mutex> l(pololuMutex);
+    boost::lock_guard<boost::mutex> l(pololuMutex);
     vector<char> list;
     //int convert_target = target * (MAX_VALUE / ((double) MAX_VALUE_PULSE));
     int convert_target = target * (MAX_VALUE / ((double) MAX_VALUE_PULSE));
@@ -86,7 +86,7 @@ void PololuController::maestroSetTarget(int channel, double target) {
 }
 
 double PololuController::maestroGetTarget(int channel) {
-    lock_guard<mutex> l(pololuMutex);
+    boost::lock_guard<boost::mutex> l(pololuMutex);
     //cout << "Ch: " << channel << endl;
     vector<char> list;
     list.push_back(0x90); // Command byte: Set Target.

@@ -1,3 +1,0 @@
-<launch>
-  <node pkg="gopro_node" name="gopro" type="gopro5.py" output="screen" />
-</launch>
