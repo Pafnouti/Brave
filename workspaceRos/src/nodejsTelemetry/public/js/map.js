@@ -54,13 +54,45 @@ const EARTH_RADIUS = 6371000.
 var lat0 = 48.431775
 var lon0 = -4.615529
 
+var cargoIcon = new L.Icon.Default();
+cargoIcon.options.shadowSize = [0, 0];
+cargoIcon.options.iconUrl = "cargo.png";
+var size = .6;
+cargoIcon.options.iconAnchor = [30 * size, 60 * size];
+cargoIcon.options.iconSize = [61 * size, 100 * size];
+
+var cargoMarkers = [];
+var updateCargos = function() {
+    cargoMarkers.forEach(element => {
+        if (element.marker) {
+            map.removeLayer(element.marker);
+        }
+    });
+    cargoMarkers.length = 0;
+    cargos.forEach(element => {
+        var clat = element.y*180./Math.PI/EARTH_RADIUS+state.lat0
+        var clon;
+        if (Math.abs(lat-90.) < EPSILON || Math.abs(lat+90.) < EPSILON)
+        {
+            clon = 0
+        } else {
+            clon = (element.x/EARTH_RADIUS)*(180./Math.PI)/Math.cos((Math.PI/180.)*(clat))+state.lon0
+        }
+        var movingCargo = new L.marker([clat, clon], {
+            icon: cargoIcon
+        }).addTo(map);
+        var angle = cargo.theta;
+        movingCargo.setRotationAngle(angle);
+        cargoMarkers.push(movingCargo);
+    });
+}
 
 setInterval(function() {
     var angle = -state.heading*90 / Math.PI;
     myMovingMarker.setRotationAngle(angle);
 
 
-    lat = state.y*180./Math.PI/EARTH_RADIUS+lat0
+    lat = state.y*180./Math.PI/EARTH_RADIUS+state.lat0
     if (Math.abs(lat-90.) < EPSILON || Math.abs(lat+90.) < EPSILON)
     {
         lon = 0
@@ -71,7 +103,10 @@ setInterval(function() {
     myMovingMarker.slideTo([lat, lon], {
         duration: .5
     });
+
+    updateCargos();
 }, 500);
+
 
 
 ///Leaflet.js
@@ -105,6 +140,7 @@ boatIcon.options.iconUrl = "boat_icon.png";
 var size = .6;
 boatIcon.options.iconAnchor = [30 * size, 60 * size];
 boatIcon.options.iconSize = [61 * size, 100 * size];
+
 
 var targetIcon = L.icon({
     iconUrl: 'css/images/target.png',
