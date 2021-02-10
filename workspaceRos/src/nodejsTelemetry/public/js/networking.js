@@ -20,8 +20,15 @@ var state = {
     lon0: -4.615529
 };
 
+var cargos = []
+
 socket.on('state', function (newState) {
     state = newState;
     lat0 = newState.lat0;
     lon0 = newState.lon0;
+});
+
+socket.on('cargos', function (data) {
+    //works if one cargo only
+    cargos = [data];
 });

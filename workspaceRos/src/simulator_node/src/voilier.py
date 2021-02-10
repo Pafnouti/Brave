@@ -60,18 +60,18 @@ class Sailboat(object):
         self.x += dx
 
         #self.v += (1 / self.m) * (np.sin(u_sail) * force_sail - np.sin(u_rudder) * force_rudder - self.alphaf * self.v) * dT
-        wspd = 4*np.linalg.norm(wind)#knots
+        wspd = np.linalg.norm(wind)#knots
         self.twd = np.arctan2(wind[1], wind[0])
         twa = sawtooth(self.theta - self.twd)
         if(np.abs(twa) < np.pi/3):
             self.sailAngle = 0
         elif np.abs(twa) < 3*np.pi/4:
-            self.sailAngle = -np.sign(twa) * np.pi/4
+            self.sailAngle = np.sign(twa) * np.pi/4
         else:
-            self.sailAngle = -np.sign(twa) * np.pi/2
+            self.sailAngle = np.sign(twa) * np.pi/2
 
 
-        self.v = 1*self.polar_f(wspd, np.abs(twa*180/np.pi))#Symmetry
+        self.v = .3*self.polar_f(wspd, np.abs(twa*180/np.pi))#Symmetry; scaled polar
         """ if float(self.v) < 0:
             self.v = 0 #Cheating for test purposes """
         """ print("Speed : ", self.v)
@@ -104,9 +104,9 @@ class Sailboat(object):
         if abs(e) > r:  # on est en dehors du chenal
             self.q = np.sign(e)  # de quel cote on est de la ligne
         # si mon angle vent - angle boat < zeta
-        print(" TWD : {:.2f} Theta : {:.2f} TWA : {:.2f} ThetaBar : {:.2f}".format(self.twd, sawtooth(theta), self.twa, thetaBar))
-        if sawtooth(self.twd-thetaBar) < zeta:
-            print("Je remonte le vent")
+        #print(" TWD : {:.2f} Theta : {:.2f} TWA : {:.2f} ThetaBar : {:.2f}".format(self.twd, sawtooth(theta), self.twa, thetaBar))
+        if np.abs(sawtooth(self.twd-thetaBar)) < zeta:
+            #print("Je remonte le vent")
             thetaBar = self.twd - self.q*zeta
         
         delta_rmax = 1

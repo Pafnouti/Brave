@@ -18,6 +18,10 @@ router.get('/settings', (req, res) => {
   res.render('settings', { title: 'Configuration' });
 });
 
+router.get('/roslog', (req, res) => {
+  res.render('roslog', { title: 'ROS logging output' });
+});
+
 router.get('/attitude', (req, res) => {
     Attitude.find()
       .then((attitude) => {
