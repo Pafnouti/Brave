@@ -12,17 +12,17 @@ def grey(r, D):
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    img = np.empty((400, 400))
-    cx, cy = c = np.array([200, 200])
+    img = np.empty((1000, 1000))
+    cx, cy = c = np.array([100, 100])
 
     polar = pd.read_csv("boat_Hermione.csv", sep=';')
     tws = polar.columns[1:].astype("float")
     twa = polar.values[:,0]
     polar_f = interpolate.interp2d(tws, twa, polar.values[:, 1:], kind='cubic')
 
-    for ix in range(400):
-        for iy in range(400):
-            print('Generating background image [%d%%]\r'%(100*ix/400), end="")
+    for ix in range(200):
+        for iy in range(200):
+            print('Generating background image [%d%%]\r'%(100*ix/200), end="")
             px = np.array([ix, iy])
 
             dx = c-px

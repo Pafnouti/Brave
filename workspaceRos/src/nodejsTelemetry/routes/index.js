@@ -22,6 +22,10 @@ router.get('/roslog', (req, res) => {
   res.render('roslog', { title: 'ROS logging output' });
 });
 
+router.get('/routing', (req, res) => {
+  res.render('routing', { title: 'Routing interface' });
+});
+
 router.get('/attitude', (req, res) => {
     Attitude.find()
       .then((attitude) => {

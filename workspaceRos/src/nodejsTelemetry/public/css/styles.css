@@ -115,6 +115,16 @@ body {
   padding-left: 8px;
 }
 
+.addPoly {
+  float: right;
+
+  padding-top: 0px;
+  padding-right: 8px;
+  padding-bottom: 0px;
+  padding-left: 8px;
+}
+
+
 .submitWP {
   margin-top: 20px;
   margin-bottom: 20px;

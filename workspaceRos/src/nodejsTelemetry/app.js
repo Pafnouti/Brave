@@ -51,11 +51,20 @@ var settings = [
     description: "Minimum allowed tacking angle"
   },
 ];
-
+var currWP = 0;
+var newWps = false;
+var newPoly = false;
+var newLogs = false;
+var newCargo = true;
+var polys = [];
+var cargos = [];
+var logs = [];
+var allLogs = [];
 
 var wp_pub;
 var routing_pub;
 var routing_tgt_pub;
+var polys_pub;
 
 const std_msgs = rosnodejs.require('std_msgs').msg;
 const geometry_msgs = rosnodejs.require('geometry_msgs').msg;
@@ -81,90 +90,87 @@ var cartToWGS84 = function(x, y) {
   return [lat, lon]
 }
 
-var currWP = 0;
-var newWps = false;
-var newPoly = false;
-var newLogs = false;
-var newCargo = true;
-var polys = [];
-var cargos = [];
-var logs = [];
-var allLogs = [];
 // Register node with ROS master
 rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
-    controller_msg = rosnodejs.require('controller').msg;
-
-    // Create ROS subscriber on the 'chatter' topic expecting String messages
-    let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
-      (data) => { // define callback execution
-        state.x = data.x;
-        state.y = data.y;
-        state.heading = data.theta;
-      }
-    );
-    let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
-      (data) => { // define callback execution
-        currWP = data;
-      }
-    );
-
-    let subGPS = rosNode.subscribe('/ublox/GPRMC', controller_msg.Gps, (data) => {
-      state.SOG = data.boat_speed;
-      state.COG = data.heading;
-    });
-    let subWind = rosNode.subscribe('/ublox/WIMDA', controller_msg.Meteo, (data) => {
-      state.TWS = data.true_wind_speed;
-      state.TWA = data.wind_direction;
-    });
-
-    let subWP = rosNode.subscribe("/Waypoints", std_msgs.Float64MultiArray, (data) => {
-      latlong = data.data;
-      wps = []
-      for (let index = 0; index < latlong.length; index+=2) {
-        wps.push({
-          latlong:[latlong[index], latlong[index + 1]],
-          id:index/2
-        });
-      }
-      console.log("Waypoints received on /Waypoints topic.")
-      waypoints = wps;
-      newWps = true;
-    });
-
-    let subRosOut = rosNode.subscribe("/rosout", rosgraph_ms.Log, (data) => {
-      logs.push(data);
-      allLogs.push(data);
-      newLogs = true;
-    });
-
-    let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
-      ll = []
-      data.poly.points.forEach(element => {
-        ll.push(cartToWGS84(element.x, element.y));
-      });
-      found = false
-      for (let index = 0; index < polys.length; index++) {
-        const element = polys[index];
-        if (element.id==data.id) {
-          element = ll
-          found = true
+    rosnodejs.loadAllPackages().then( (e) => {
+      controller_msg = rosnodejs.require('controller').msg;
+  
+      // Create ROS subscriber on the 'chatter' topic expecting String messages
+      let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
+        (data) => { // define callback execution
+          state.x = data.x;
+          state.y = data.y;
+          state.heading = data.theta;
         }
-      }
-      if (!found) {
-        polys.push(ll)
-      }
-      newPoly = true
-    });
-
-    let subCargos = rosNode.subscribe("/posNavire", geometry_msgs.Pose2D, (data) => {
-      cargos = [data];
-      newCargo = true;
-    });
-
-    wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray)
-    routing_pub = rosNode.advertise("/Routing", std_msgs.Bool)
-    routing_tgt_pub = rosNode.advertise("/Target", geometry_msgs.Pose2D)
+      );
+      let subID = rosNode.subscribe('/Current_Target', std_msgs.Int32,
+        (data) => { // define callback execution
+          currWP = data;
+        }
+      );
+  
+      let subGPS = rosNode.subscribe('/ublox/GPRMC', controller_msg.Gps, (data) => {
+        state.SOG = data.boat_speed;
+        state.COG = data.heading;
+      });
+      let subWind = rosNode.subscribe('/ublox/WIMDA', controller_msg.Meteo, (data) => {
+        state.TWS = data.true_wind_speed;
+        state.TWA = data.wind_direction;
+      });
+  
+      let subWP = rosNode.subscribe("/Waypoints", std_msgs.Float64MultiArray, (data) => {
+        latlong = data.data;
+        wps = []
+        for (let index = 0; index < latlong.length; index+=2) {
+          wps.push({
+            latlong:[latlong[index], latlong[index + 1]],
+            id:index/2
+          });
+        }
+        console.log("Waypoints received on /Waypoints topic.")
+        waypoints = wps;
+        newWps = true;
+      });
+  
+      let subRosOut = rosNode.subscribe("/rosout", rosgraph_ms.Log, (data) => {
+        logs.push(data);
+        allLogs.push(data);
+        newLogs = true;
+      });
+  
+      let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
+        ll = []
+        data.poly.points.forEach(element => {
+          ll.push(cartToWGS84(element.x, element.y));
+        });
+        found = false
+        for (let index = 0; index < polys.length; index++) {
+          const element = polys[index];
+          if (element.id==data.id) {
+            element = ll
+            found = true
+          }
+        }
+        if (!found) {
+          polys.push(ll)
+        }
+        newPoly = true
+      });
+  
+      let subCargos = rosNode.subscribe("/posNavire", geometry_msgs.Pose2D, (data) => {
+        cargos = [data];
+        newCargo = true;
+      });
+  
+      wp_pub = rosNode.advertise("/Waypoints", std_msgs.Float64MultiArray);
+      routing_pub = rosNode.advertise("/Routing", std_msgs.Bool);
+      routing_tgt_pub = rosNode.advertise("/Target", geometry_msgs.Pose2D);
+      console.log(controller_msg.UniquePolygonArray);
+      console.log(controller_msg.UniquePolygon);
+      polys_pub = rosNode.advertise("/Polys", controller_msg.UniquePolygonArray);
+    }
+    );
   });
 
 
@@ -224,14 +230,51 @@ io.on('connection', function (socket) {
     }*/
   });
   
+  socket.on('userPolys', function(data) {
+    var msgList = new controller_msg.UniquePolygonArray();
+    var list = []
+    data.forEach(receivedPolygon => {    
+      var msg = new controller_msg.UniquePolygon();
+      var p = new geometry_msgs.Polygon();
+      var obs = new std_msgs.Bool();
+
+      console.log(receivedPolygon);
+  
+      var ps = [];
+      receivedPolygon.latlng.forEach(element => {
+        var pt = new geometry_msgs.Point32();
+        pt.x = element[0];
+        pt.y = element[1];
+        pt.z = 0;
+        ps.push(pt);
+      });
+      
+      p.points = ps;
+      msg.poly = p;
+
+      obs.data = receivedPolygon.isObstacle;
+      msg.isObstacle = obs;
+
+      console.log(msg);
+      list.push(msg);
+    });
+
+    msgList.data = list;
+    polys_pub.publish(msgList);
+    /*if(data) {
+    } else {
+      wp_pub.publish(msg);
+    }*/
+  });
+
   socket.on("routingTarget", function(data){
     tgt_msg.x = data.lat;
     tgt_msg.y = data.lon;
     routing_tgt_pub.publish(tgt_msg)
   });
   setInterval(function () {
-    socket.broadcast.emit('state', state);
-    socket.broadcast.emit('currentTarget', currWP);
+    socket.emit('state', state);
+    socket.emit('currentTarget', currWP);
     if (newWps) {
       socket.emit('staticWP', waypoints);
       newWps = false;
