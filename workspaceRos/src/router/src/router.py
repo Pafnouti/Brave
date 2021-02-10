@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 
 import rospy
+import yaml
+import json
+import numpy as np
 
 from routeur import *
 
 from controller.msg import Line, Wind
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
-from std_msgs.msg import Float64MultiArray, Int32
+from std_msgs.msg import Float64MultiArray, Int32, String
 
 
 
@@ -37,6 +40,8 @@ def cart_to_WGS84(x, y):
         lon = (x/EARTH_RADIUS)*(180./np.pi)/np.cos((np.pi/180.)*(lat))+lon0
     return lat, lon
 
+def knts_to_mps(knts):
+    return 0,514444*knts
 
 
 class Router():
@@ -50,6 +55,8 @@ class Router():
         self.target = (0, 0)
         self.state = (0, 0)
 
+        self.cargos = {}
+
         
         self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)
 
@@ -57,6 +64,34 @@ class Router():
         rospy.Subscriber('/Target', Pose2D, self._callback_target)
         rospy.Subscriber('/State', Pose2D, self._callback_state)
         rospy.Subscriber('/Wind', Wind, self._callback_wind)
+        rospy.Subscriber('/AIVDM', String, self._callback_aivdm)
+
+
+    def _callback_aivdm(self, msg):
+        """
+        Lorsqu'une trame aivdm est reçue sur le topic '/AIVDM', la fonction 
+        _callback_aivdm les récupère afin de calculer le polygone associé.
+        """
+
+        # On convertit le msg ROS (String) en dictionary pour récupérer les différentes informations utiles au calcul du polygone
+        data = yaml.load(str(msg))
+        aivdm_dictionary = json.loads(data["data"])
+        #print(aivdm_dictionary)
+
+        nb_sec = aivdm_dictionary["second"]
+        latitude = aivdm_dictionary["lat"]
+        longitude = aivdm_dictionary["lon"]
+        vitesse_nd = aivdm_dictionary["speed"] # knts
+        heading = aivdm_dictionary["heading"] # deg north cw
+        imo = aivdm_dictionary["imo"] # id
+
+        
+        x, y = WGS84_to_cart(latitude, longitude)
+        v = knts_to_mps(vitesse_nd)
+        cap = (np.pi/2 - np.deg2rad(heading))%(2*np.pi)
+        info = {'pos':(x, y), 'v':v, 'cap':cap}
+        self.cargos[imo] = info
+
 
 
     def _callback_target(self, msg):
@@ -81,7 +116,13 @@ class Router():
             print('routing...')
 
             B = WGS84_to_cart(self.target[0], self.target[1])
-            traj, iso = self.routeur.run(self.state, B)
+
+
+            # lancement du calcul par le routeur
+            traj, iso = self.routeur.run(self.state, B, cargos=self.cargos)
+
+
+            # envoie des données via ROS
             self.wps = Float64MultiArray()
             wps_tmp = []
             for i in range(len(traj[0])):
