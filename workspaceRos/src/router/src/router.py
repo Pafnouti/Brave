@@ -66,6 +66,8 @@ class Router():
         rospy.Subscriber('/Wind', Wind, self._callback_wind)
         rospy.Subscriber('/AIVDM', String, self._callback_aivdm)
 
+        self.calculating = False
+
 
     def _callback_aivdm(self, msg):
         """
@@ -104,8 +106,9 @@ class Router():
 
     def _callback_routing(self, msg):
         self.activated = msg.data
-        print('cb routage')
-        self.main()
+        #print('cb routage')
+        if not self.calculating:
+            self.main()
 
     def _callback_wind(self, msg):
         self.routeur.set_weahter(msg.wind_speed, msg.wind_direction)
@@ -113,7 +116,9 @@ class Router():
     
     def main(self):
         if self.activated and self.got_target:
-            print('routing...')
+
+            self.calculating = True
+            rospy.loginfo('routing...')
 
             B = WGS84_to_cart(self.target[0], self.target[1])
 
@@ -132,6 +137,8 @@ class Router():
                 wps_tmp.append(lon)
             self.wps.data = wps_tmp
             self.pub_wps.publish(self.wps)
+            rospy.loginfo('Waypoints envoyés')
+            self.calculating = False
         else:
             print('not routing')
 
@@ -142,8 +149,8 @@ class Router():
 
 if __name__ == "__main__":
     rospy.init_node('router', anonymous=True)
-    router = Router(rosrate=0.01)
+    router = Router(rosrate=0.001)
 
-    while not rospy.is_shutdown():
-        router.main()
-        router.rate.sleep()
+    # while not rospy.is_shutdown():
+    #     router.main()
+    #     router.rate.sleep()

@@ -18,7 +18,7 @@ dname = os.path.dirname(abspath)
 os.chdir(dname)
 
 DEBUG = True
-deep_DEBUG = False
+deep_DEBUG = True
 
 
 def distanceAB(A, B):
@@ -202,27 +202,61 @@ class Routeur():
 
         return bnd
 
+    def sort_dist(self, points, centre):
+        A = np.array((centre[0], centre[1])).reshape(1,-1)
+        distances = cdist(A, points[:, :2]).flatten()
+        i_d = np.argsort(distances)
+        
+
+        return points[i_d, :]
+
+
+
 
     def compute_iso2(self, points, zone, zones_cargos, A, B, d_min=4, line=True, pas=1):
+
+       
         
-        nb_secteurs = 10
+        nb_secteurs = 200
+        secteurs = np.linspace(0, 2*np.pi, nb_secteurs)
 
         # on determine tous les angles entre les pts et A
-        angles = np.arctan2(points[:, 1] - A[1], points[:, 0] - A[0])
-        a_min, a_max = angles.min(), angles.max()
-        pas_a = (a_max - a_min)/nb_secteurs
+        angles = np.arctan2(points[:, 1] - A[1], points[:, 0] - A[0]).reshape(-1, 1)%(2*np.pi)
+        points = np.hstack((points, angles))
 
-        # on determine les distance au points A
-        distances = cdist(np.array(((A[0], A[1]))).reshape(1,-1), points).T
+        points2 = np.zeros((1, 3))
+
+        for i in range(nb_secteurs - 1):
+
+            pts = points[secteurs[i] < points[:, 3], :]
+            pts = pts[pts[:, 3] < secteurs[i+1]]
+
+            # plt.scatter(points[:, 0], points[:, 1])
+            # plt.scatter(pts[:, 0], pts[:, 1])
+            # plt.scatter(A[0], A[1])
+            
+
+            pts = self.sort_dist(pts[:, :-1], A)
+            index = -min(10, pts.shape[0])
+            if len(pts) != 0:
+                pts = pts[-1, :]
+            # plt.scatter(pts[:, 0], pts[:, 1])
+
+                if points2.shape[0] == 1 :
+                    points2 = pts
+                else:
+                    points2 = np.vstack((points2, pts))
+
+
+        # plt.scatter(points[:, 0], points[:, 1])
+        # plt.scatter(points2[:, 0], points2[:, 1])
+        # plt.scatter(A[0], A[1])
+        # plt.show()
+            
+        points = points2
+
         
-        points = np.hstack((points, distances))
-        points = np.sort(points.T, -1).T
-
-        print(points)
-
-        points = points[int(0.9*points.shape[0]):, :2]
-
-        print(points[0])
+        
 
         return points
 
@@ -301,46 +335,41 @@ class Routeur():
 
             if target_near:
                 pas_t = pas2/3
-            iso = []
+            iso = np.zeros((1, 3))
 
             # on update la pos des cargos :
             zones_cargos = self.zones_cargos(cargos, t, pas_t) 
 
             # pour tous les points de l'isochrone précédente 
             for j in range(points[-1].shape[0]):
-                pt = points[-1][j, :].tolist()
-                i_pt = self.all_points.index(pt)
+                pt = points[-1][j, :]
 
                 # pour tous les angles 
                 for a in angles:
                     x, y = polToCart(a, self.polaire(a, self.weather(pos = pt))*pas_t)
                     x += pt[0]
                     y += pt[1]
-
                                              
                     # ou pour 3/4 de cercle plutot ;)
-                    if (abs(getAngleABC(A, pt, (x, y))) > np.pi/4) or i_iso < 1:
-                            iso.append((x, y))
-                            self.all_points.append([x, y])
-                            self.hist_points[len(self.all_points)-1] = i_pt
+                    #if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4) or i_iso < 1:
+                    if iso.shape[0] == 1:
+                        iso = np.array(((x[0], y[0], j)))
+                    else:
+                        iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
             
-            # passage en numpy
-            tmp_points = np.zeros((len(iso), 2))
-            for i in range(len(iso)):
-                tmp_points[i][0] = iso[i][0]
-                tmp_points[i][1] = iso[i][1]
-
+                       
             t1 = time.time()
             t_1.append(t1 - t0)
+
             
             # pour toutes les iso sauf la première
             if i_iso > 0:
                 cout('computing iso : {}'.format(i_iso))
-                tmp_points = np.array(cercle2.intersection(MultiPoint(tmp_points))) # on enlève les points zen dehors du plus grand cerlce
+                iso = np.array(cercle2.intersection(MultiPoint(iso))) # on enlève les points zen dehors du plus grand cerlce
                 if deep_DEBUG : plt.plot(cercle_np[:, 0], cercle_np[:, 1])
-                pts = self.compute_iso2(tmp_points, cercle, zones_cargos, A, B, pas=pas_t)
+                pts = self.compute_iso2(iso, cercle, zones_cargos, A, B, pas=pas_t)
             else:
-                pts = tmp_points
+                pts = iso
 
             points.append(pts)
             i_iso += 1
@@ -348,11 +377,12 @@ class Routeur():
             t2 = time.time()
             t_2.append(t2 - t1)
 
+
             # conditions d'arrêt
             for i in range(pts.shape[0]):
-                if distanceAB(B, pts[i, :]) < 0.2*dAB/nb_iso:
+                if distanceAB(B, pts[i, :2]) < 0.2*dAB/nb_iso:
                     target_in = True
-                elif distanceAB(B, pts[i, :]) < 1.2*dAB/nb_iso:
+                elif distanceAB(B, pts[i, :2]) < 1.2*dAB/nb_iso:
                     target_near = True
             if target_in:
                 cout("Target in !")
@@ -363,18 +393,23 @@ class Routeur():
    
         cout('temps (%) : ', np.mean(t_1)/(np.mean(t_2) + np.mean(t_1))*100)
 
-        pts_to_check = np.vstack((points[-1], points[-2]))
-        pt = pts_to_check[cdist([np.array(((B[0], B[1])))], pts_to_check).argmin()].tolist()
+        #pts_to_check = np.vstack((points[-1], points[-2]))
+        pt = points[-1][cdist([np.array(((B[0], B[1])))], points[-1][:, :2]).argmin()]
 
-        # on retrace la trajectoire
-        i_pt = self.all_points.index(pt)
-        traj_x, traj_y = [self.all_points[i_pt][0]], [self.all_points[i_pt][1]]
-        while self.hist_points[i_pt] != -1:
-            i_pt = self.hist_points[i_pt]
-            traj_x.insert(0, self.all_points[i_pt][0])
-            traj_y.insert(0, self.all_points[i_pt][1])
-        traj_x.append(B[0])
-        traj_y.append(B[1])
+
+        i = len(points) - 1
+        j = int(pt[2])
+
+        traj_x, traj_y = [pt[0], B[0]], [pt[1], B[1]]
+
+        while i != 0:
+            i -= 1
+            #print(j)
+            #print(points[i][j, :])            
+            traj_x.insert(0, points[i][j, 0])
+            traj_y.insert(0, points[i][j, 1])
+            j = int(points[i][j, 2])
+            
 
         return (traj_x, traj_y), points
     
@@ -400,7 +435,7 @@ if __name__ == "__main__":
 
     traj, iso = routeur.run(A, B)
     for i in iso:
-        plt.plot(i[:, 0], i[:, 1])
+        plt.scatter(i[:, 0], i[:, 1])
     for p_c in routeur.poly_cargos[:]:
         plt.plot(p_c[0], p_c[1])
     
