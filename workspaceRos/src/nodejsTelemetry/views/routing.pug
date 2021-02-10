@@ -1,0 +1,31 @@
+extends layout
+block content
+
+    div.row
+        div.col-md-3.overflow-auto#scrollable
+            lu
+                li.list-group-item#addPolygon Create constraint polygon
+                    button(type="button").btn.btn-primary.addPoly +
+                .collapse#addPointsModal
+                    #modStyle
+                        a.text-center Click on the map to add polygon points.
+                            button(type="button").btn.btn-success.btn-block#addPolygonEndSafe Safe zone
+                            button(type="button").btn.btn-danger.btn-block#addPolygonEndObstacle Obstacle
+                
+
+            button(type="button").btn.btn-success.btn-block.submitPolys Send polygons
+            div.btn-group(role="group")
+                input(type="file").btn.btn-success#file-input
+                button(type="button").btn.btn-primary.downloadBtn
+                    i.fa.fa-download   Download polygons
+        div.col-md-9
+            #mapdiv
+
+
+        script(src='/js/libs/leaflet.js')
+        script(src='/js/libs/leaflet.movingRotatedMarker.js')
+        script(src='/js/libs/leaflet.polylineDecorator.js')
+        script(src='/js/libs/Sortable.min.js')
+        script(src='/js/libs/gauge.min.js')
+
+        script(src='/js/routing.js')
