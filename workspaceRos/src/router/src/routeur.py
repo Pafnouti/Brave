@@ -17,8 +17,8 @@ abspath = os.path.abspath(__file__)
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
-DEBUG = True
-deep_DEBUG = True
+DEBUG = False
+deep_DEBUG = False
 
 
 def distanceAB(A, B):
@@ -220,16 +220,6 @@ class Routeur():
         return pts
 
 
-
-    def in_circle(self, points, C, r):
-        distances = cdist(C, points[:, :2])
-        print(distances.shape)
-
-        return points
-
-
-
-
     def compute_iso2(self, points, lst_points, A, B, C, r, no_go_zones, safe_zones):
 
 
@@ -238,7 +228,7 @@ class Routeur():
         C = np.array((C[0], C[1])).reshape(1, -1)
            
         
-        nb_secteurs = 200
+        nb_secteurs = 150
         secteurs = np.linspace(0, 2*np.pi, nb_secteurs)
 
         # on determine tous les angles entre les pts et A
@@ -294,7 +284,7 @@ class Routeur():
         return points
 
 
-    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=50, pas_t=0.5, nb_iso=10, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
+    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=40, pas_t=0.5, nb_iso=7, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
         cout('Starting...')
 
         #pour debug : 
@@ -310,7 +300,7 @@ class Routeur():
 
         # réglage du pas un peu empirique
         dAB = distanceAB(A, B)
-        v_moy = self.polaire(45*np.pi/180, self.weather(pos=A))*0.7
+        v_moy = self.polaire(45*np.pi/180, self.weather(pos=A))*0.7 # on suppose qu'on va a 70% de la VMG en moyenne
         pas_t = dAB/(nb_iso*v_moy)
 
         cout('Distance à parcourir : {}, vitesse estimée : {}, eta : {}'.format(dAB, v_moy, dAB/v_moy))
@@ -448,6 +438,9 @@ class Routeur():
 
 
 if __name__ == "__main__":
+
+
+    DEBUG = True
 
     
     routeur = Routeur()
