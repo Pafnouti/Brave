@@ -258,7 +258,7 @@ class Routeur():
                     j = int(pts[-1, 2])
                     lst_pt = (lst_points[j, 0], lst_points[j, 1])
 
-                    #plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
+                    plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
 
                     if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or not LineString((cur_pt, lst_pt)).within(safe_zones):
                         ok = False 
@@ -286,6 +286,10 @@ class Routeur():
 
     def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=40, pas_t=0.5, nb_iso=7, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
         cout('Starting...')
+
+        no_go_zones = (Polygon(((200, 0), (200, -200), (300, -200), (300, 0))))
+        safe_zones = (Polygon(((600, -400), (600, 200), (-100, 200), (-100, -400))))
+
 
         #pour debug : 
         self.cargos = cargos
@@ -346,8 +350,11 @@ class Routeur():
         t_2 = []
         t_3 = []
 
-        safe_zones = safe_zones.union(cercle)
-
+        safe_zones = safe_zones.intersection(cercle)
+        
+        if DEBUG:
+            plt.plot(*no_go_zones.exterior.xy)
+            plt.plot(*safe_zones.exterior.xy)
 
         # boucle principale
         while i_iso < 3*nb_iso and not target_in:
@@ -360,7 +367,7 @@ class Routeur():
 
             # on update la pos des cargos :
             #no_go_zones = no_go_zones.union(self.zones_cargos(cargos, t, pas_t))
-            no_go_zones = self.zones_cargos(cargos, t, pas_t)
+            no_go_zones = no_go_zones.union(self.zones_cargos(cargos, t, pas_t))
 
             # pour tous les points de l'isochrone précédente 
             for j in range(points[-1].shape[0]):
@@ -441,6 +448,7 @@ if __name__ == "__main__":
 
 
     DEBUG = True
+    deep_DEBUG = True
 
     
     routeur = Routeur()
