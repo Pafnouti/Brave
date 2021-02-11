@@ -3,7 +3,8 @@ block content
 
     div.row
         div.col-md-3.overflow-auto#scrollable
-            lu
+            lu#polyList
+            lu.listLeftContainer
                 li.list-group-item#addPolygon Create constraint polygon
                     button(type="button").btn.btn-primary.addPoly +
                 .collapse#addPointsModal
@@ -18,6 +19,10 @@ block content
                 input(type="file").btn.btn-success#file-input
                 button(type="button").btn.btn-primary.downloadBtn
                     i.fa.fa-download   Download polygons
+
+            section.terminal-container.terminal-fixed-top
+                div.terminal-home.overflow-hidden
+                    <p class="console">MacBook-Pro-de-David:Projects dach3r$ rails server</p>
         div.col-md-9
             #mapdiv
 

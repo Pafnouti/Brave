@@ -347,7 +347,7 @@ class Routeur():
         t_3 = []
 
         safe_zones = safe_zones.union(cercle)
-
+        
 
         # boucle principale
         while i_iso < 3*nb_iso and not target_in:

@@ -59,6 +59,7 @@ add_message_files(
    Wind.msg
    State.msg
    UniquePolygon.msg
+   UniquePolygonArray.msg
  )
 
 ## Generate services in the 'srv' folder

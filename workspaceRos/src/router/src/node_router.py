@@ -1,13 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import yaml
 import json
 import numpy as np
+from shapely.geometry import MultiPolygon, Polygon
 
 from routeur import *
 
-from controller.msg import Line, Wind
+from controller.msg import Line, Wind, UniquePolygonArray
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64MultiArray, Int32, String
@@ -56,6 +57,8 @@ class Router():
         self.state = (0, 0)
 
         self.cargos = {}
+        self.safeZone = MultiPolygon()
+        self.noGoZone = MultiPolygon()
 
         
         self.pub_wps = rospy.Publisher('/Waypoints', Float64MultiArray, queue_size=32)
@@ -65,9 +68,28 @@ class Router():
         rospy.Subscriber('/State', Pose2D, self._callback_state)
         rospy.Subscriber('/Wind', Wind, self._callback_wind)
         rospy.Subscriber('/AIVDM', String, self._callback_aivdm)
+        rospy.Subscriber('/Polys', UniquePolygonArray, self._callback_polys)
 
         self.calculating = False
 
+    def _callback_polys(self, msg):
+        safe = []
+        obstacles = []
+        
+        for uniquePolygon in msg.data:
+            pts = []
+            for p in uniquePolygon.poly.points:
+                xy = WGS84_to_cart(p.x, p.y)
+                pts.append(xy)
+            if uniquePolygon.isObstacle.data:
+                obstacles.append(Polygon(pts))
+            else :
+                safe.append(Polygon(pts))
+        
+        self.noGoZone = MultiPolygon(obstacles)
+        self.safeZone = MultiPolygon(safe)
+        if not self.calculating:
+            self.main()
 
     def _callback_aivdm(self, msg):
         """
@@ -99,6 +121,9 @@ class Router():
     def _callback_target(self, msg):
         self.target = (msg.x, msg.y)
         self.got_target = True
+        rospy.loginfo("Got new target : {:.2f}, {:.2f}".format(msg.x, msg.y))
+        if not self.calculating:
+            self.main()
         
 
     def _callback_state(self, msg):
@@ -124,7 +149,7 @@ class Router():
 
 
             # lancement du calcul par le routeur
-            traj, iso = self.routeur.run(self.state, B, cargos=self.cargos)
+            traj, iso = self.routeur.run(self.state, B, safe_zones=self.safeZone, no_go_zones=self.noGoZone, cargos=self.cargos)
 
 
             # envoie des données via ROS
@@ -151,6 +176,6 @@ if __name__ == "__main__":
     rospy.init_node('router', anonymous=True)
     router = Router(rosrate=0.001)
 
-    # while not rospy.is_shutdown():
-    #     router.main()
-    #     router.rate.sleep()
+    while not rospy.is_shutdown():
+        router.main()
+        router.rate.sleep()

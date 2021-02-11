@@ -273,26 +273,27 @@ io.on('connection', function (socket) {
     routing_tgt_pub.publish(tgt_msg)
   });
   setInterval(function () {
-    socket.emit('state', state);
-    socket.emit('currentTarget', currWP);
+    socket.broadcast.emit('state', state);
+    socket.broadcast.emit('currentTarget', currWP);
     if (newWps) {
-      socket.emit('staticWP', waypoints);
+      console.log("sent");
+      socket.broadcast.emit('staticWP', waypoints);
       newWps = false;
     }
     if (newPoly) {
-      socket.emit('newPolys', polys)
+      socket.broadcast.emit('newPolys', polys)
       newPoly = false;
     }
     if (newLogs) {
       logs.forEach(element => {
-        socket.emit('rosInfo', element)
+        socket.broadcast.emit('rosInfo', element)
       });
       logs = [];
       newLogs = false;
     }
     if (newCargo) {
       cargos.forEach(element => {
-        socket.emit('cargos', element)
+        socket.broadcast.emit('cargos', element)
       });
       cargos = [];
       newCargo = false;
