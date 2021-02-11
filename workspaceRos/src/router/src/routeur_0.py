@@ -203,25 +203,46 @@ class Routeur():
         return bnd
 
     def sort_dist(self, points, centre):
-        A = np.array((centre[0], centre[1])).reshape(1,-1)
-        distances = cdist(A, points[:, :2]).flatten()
-        i_d = np.argsort(distances)
-        
 
+        distances = cdist(centre, points[:, :2]).flatten()
+        i_d = np.argsort(distances)
+    
         return points[i_d, :]
 
+    def in_poly(self, points, poly):
+        pts = np.zeros((1, 3))
+        for i in range(points.shape[0]):
+            if poly.contains(Point(points[i, 0], points[i, 1])):
+                if pts.shape[0] == 1:
+                    pts = points[i, :]
+                else:
+                    pts.vstack((pts, points[i, :]))
+        return pts
 
 
 
-    def compute_iso2(self, points, zone, zones_cargos, A, B, d_min=4, line=True, pas=1):
+    def in_circle(self, points, C, r):
+        distances = cdist(C, points[:, :2])
+        print(distances.shape)
 
-       
+        return points
+
+
+
+
+    def compute_iso2(self, points, lst_points, A, B, C, r, zones_cargos):
+
+
+        A = np.array((A[0], A[1])).reshape(1, -1)
+        B = np.array((B[0], B[1])).reshape(1, -1)
+        C = np.array((C[0], C[1])).reshape(1, -1)
+           
         
         nb_secteurs = 200
         secteurs = np.linspace(0, 2*np.pi, nb_secteurs)
 
         # on determine tous les angles entre les pts et A
-        angles = np.arctan2(points[:, 1] - A[1], points[:, 0] - A[0]).reshape(-1, 1)%(2*np.pi)
+        angles = np.arctan2(points[:, 1] - A[0, 1], points[:, 0] - A[0, 0]).reshape(-1, 1)%(2*np.pi)
         points = np.hstack((points, angles))
 
         points2 = np.zeros((1, 3))
@@ -237,21 +258,33 @@ class Routeur():
             
 
             pts = self.sort_dist(pts[:, :-1], A)
-            index = -min(10, pts.shape[0])
+
             if len(pts) != 0:
-                pts = pts[-1, :]
-            # plt.scatter(pts[:, 0], pts[:, 1])
+                
+                if cdist(C, pts[-1, :2].reshape(1, -1)) < r :
+                    ok = True
+                    
+                    cur_pt = (pts[-1, 0], pts[-1, 1])
+                    j = int(pts[-1, 2])
+                    lst_pt = (lst_points[j, 0], lst_points[j, 1])
+                    plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
+                    if LineString((cur_pt, lst_pt)).crosses(zones_cargos):
+                        ok = False 
+                        
+                    if ok:
+                        pts = pts[-1, :]
 
-                if points2.shape[0] == 1 :
-                    points2 = pts
-                else:
-                    points2 = np.vstack((points2, pts))
+                        if points2.shape[0] == 1 :
+                            points2 = pts
+                        else:
+                            points2 = np.vstack((points2, pts))
 
 
-        # plt.scatter(points[:, 0], points[:, 1])
-        # plt.scatter(points2[:, 0], points2[:, 1])
-        # plt.scatter(A[0], A[1])
-        # plt.show()
+        plt.scatter(points[:, 0], points[:, 1])
+        plt.scatter(points2[:, 0], points2[:, 1])
+        plt.scatter(A[0, 0], A[0, 1])
+        plt.scatter(B[0, 0], B[0, 1])
+        plt.show()
             
         points = points2
 
@@ -292,9 +325,6 @@ class Routeur():
         angles = np.linspace(0, 2*np.pi, def_ang)
         angles_2 = np.linspace(0, 3/2*np.pi, int(3/4*def_ang))
 
-        # self.all_points permet de retrouver le chemin
-        self.all_points = [A]
-        self.hist_points = {0:-1}
 
         # c'est le cercle dans lequelle on peut faire les calculs, pour optimiser et que le voilier ne cherche pas à aller dans la direction opposée du point d'arrivée
         C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
@@ -308,9 +338,9 @@ class Routeur():
 
         # le deuxième cercle sert pour généré les points, le premier, plus petit pour selectionner les lignes (cf alphashape)
         cercle_2 = []
-        r = r*1.2
+        r2 = r*1.2
         for a in angles:
-            p = C[0]+r*np.cos(a), C[1]+r*np.sin(a)
+            p = C[0]+r2*np.cos(a), C[1]+r2*np.sin(a)
             cercle_2.append(p)
         cercle2_np = np.array(cercle_2)
         cercle2 = Polygon(cercle2_np)
@@ -329,7 +359,7 @@ class Routeur():
 
 
         # boucle principale
-        while i_iso < 2*nb_iso and not target_in:
+        while i_iso < 3*nb_iso and not target_in:
 
             t0 = time.time()
 
@@ -338,7 +368,8 @@ class Routeur():
             iso = np.zeros((1, 3))
 
             # on update la pos des cargos :
-            zones_cargos = self.zones_cargos(cargos, t, pas_t) 
+            zones_cargos = self.zones_cargos(cargos, t, pas_t)
+ 
 
             # pour tous les points de l'isochrone précédente 
             for j in range(points[-1].shape[0]):
@@ -351,11 +382,11 @@ class Routeur():
                     y += pt[1]
                                              
                     # ou pour 3/4 de cercle plutot ;)
-                    #if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4) or i_iso < 1:
-                    if iso.shape[0] == 1:
-                        iso = np.array(((x[0], y[0], j)))
-                    else:
-                        iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
+                    if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4 and cercle2.intersection(Point(x, y))) or i_iso < 1:
+                        if iso.shape[0] == 1:
+                            iso = np.array(((x[0], y[0], j)))
+                        else:
+                            iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
             
                        
             t1 = time.time()
@@ -364,10 +395,9 @@ class Routeur():
             
             # pour toutes les iso sauf la première
             if i_iso > 0:
-                cout('computing iso : {}'.format(i_iso))
-                iso = np.array(cercle2.intersection(MultiPoint(iso))) # on enlève les points zen dehors du plus grand cerlce
+                cout('computing iso ({}): {}'.format(iso.shape[0], i_iso))
                 if deep_DEBUG : plt.plot(cercle_np[:, 0], cercle_np[:, 1])
-                pts = self.compute_iso2(iso, cercle, zones_cargos, A, B, pas=pas_t)
+                pts = self.compute_iso2(iso, points[-1], A, B, C, r, zones_cargos)
             else:
                 pts = iso
 
@@ -380,9 +410,9 @@ class Routeur():
 
             # conditions d'arrêt
             for i in range(pts.shape[0]):
-                if distanceAB(B, pts[i, :2]) < 0.2*dAB/nb_iso:
+                if distanceAB(B, pts[i, :2]) < 0.4*dAB/nb_iso:
                     target_in = True
-                elif distanceAB(B, pts[i, :2]) < 1.2*dAB/nb_iso:
+                elif distanceAB(B, pts[i, :2]) < 2*dAB/nb_iso:
                     target_near = True
             if target_in:
                 cout("Target in !")
@@ -405,7 +435,7 @@ class Routeur():
         while i != 0:
             i -= 1
             #print(j)
-            #print(points[i][j, :])            
+            # print(points[i][:, :])            
             traj_x.insert(0, points[i][j, 0])
             traj_y.insert(0, points[i][j, 1])
             j = int(points[i][j, 2])
