@@ -230,7 +230,7 @@ class Routeur():
 
 
 
-    def compute_iso2(self, points, lst_points, A, B, C, r, zones_cargos):
+    def compute_iso2(self, points, lst_points, A, B, C, r, no_go_zones, safe_zones):
 
 
         A = np.array((A[0], A[1])).reshape(1, -1)
@@ -269,8 +269,8 @@ class Routeur():
                     lst_pt = (lst_points[j, 0], lst_points[j, 1])
 
                     #plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
-                    
-                    if LineString((cur_pt, lst_pt)).crosses(zones_cargos):
+
+                    if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or not LineString((cur_pt, lst_pt)).within(safe_zones):
                         ok = False 
                         
                     if ok:
@@ -290,13 +290,11 @@ class Routeur():
             
         points = points2
 
-        
-        
-
+    
         return points
 
 
-    def run(self, A, B, def_ang=50, pas_t=0.5, nb_iso=10, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}):
+    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=50, pas_t=0.5, nb_iso=10, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
         cout('Starting...')
 
         #pour debug : 
@@ -358,6 +356,7 @@ class Routeur():
         t_2 = []
         t_3 = []
 
+        safe_zones = safe_zones.union(cercle)
 
 
         # boucle principale
@@ -370,8 +369,8 @@ class Routeur():
             iso = np.zeros((1, 3))
 
             # on update la pos des cargos :
-            zones_cargos = self.zones_cargos(cargos, t, pas_t)
- 
+            #no_go_zones = no_go_zones.union(self.zones_cargos(cargos, t, pas_t))
+            no_go_zones = self.zones_cargos(cargos, t, pas_t)
 
             # pour tous les points de l'isochrone précédente 
             for j in range(points[-1].shape[0]):
@@ -399,7 +398,7 @@ class Routeur():
             if i_iso > 0:
                 cout('computing iso ({}): {}'.format(iso.shape[0], i_iso))
                 if deep_DEBUG : plt.plot(cercle_np[:, 0], cercle_np[:, 1])
-                pts = self.compute_iso2(iso, points[-1], A, B, C, r, zones_cargos)
+                pts = self.compute_iso2(iso, points[-1], A, B, C, r, no_go_zones, safe_zones)
             else:
                 pts = iso
 
