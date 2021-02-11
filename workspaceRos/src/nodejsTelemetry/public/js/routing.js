@@ -189,10 +189,13 @@ $('#addPolygonEndSafe').click(function (event) {
     currPoly.setStyle({color: 'green'});
     polys.push({
         polygon: currPoly,
-        isObstacle: false
+        isObstacle: false,
+        id: polys[polys.length-1]==undefined ? 0 : polys[polys.length-1].id + 1
     });
+    currPoly.bindTooltip("id : " + polys[polys.length-1].id, {permanent: false, direction:"center"}).openTooltip()
     currPoly = undefined;
-    $('#addPointsModal').collapse('hide');    
+    $('#addPointsModal').collapse('hide');
+    updatePolyList();
 });
 
 $('#addPolygonEndObstacle').click(function (event) {
@@ -200,16 +203,21 @@ $('#addPolygonEndObstacle').click(function (event) {
     currPoly.setStyle({color: 'red'});
     polys.push({
         polygon: currPoly,
-        isObstacle: true
+        isObstacle: true,
+        id: polys[polys.length-1]==undefined ? 0 : polys[polys.length-1].id + 1
     });
+    currPoly.bindTooltip("id : " + polys[polys.length-1].id, {permanent: false, direction:"center"}).openTooltip()
     currPoly = undefined;
     $('#addPointsModal').collapse('hide');
+    updatePolyList();
 });
 
 
 $(".addPoly").click(function (event) {
     $('#addPointsModal').collapse('show');
     addingPoints = true;
+    currPolyLatLngs.length = 0;
+    updateCurrPoly();
     currPolyLatLngs.length = 0;
 });
 
@@ -266,6 +274,22 @@ var updateStaticWPList = function (wps) {
     decoratorStatic.setPaths(polylineStatic);
 }
 
+
+var updatePolyList = function() {
+    $("#polyList").empty();
+    polys.forEach(element => {
+        $("#polyList").append('<li class="list-group-item wpItem" id="' + element.id + '"> Polygon with ID : ' + element.id + '<button class="btn btn-danger deletePoly" id="deletePoly'+element.id+'" type="button">-</button></li>');
+        $("#deletePoly"+element.id).click(function (event) {
+            $(this).closest("li").remove();
+            polys.splice(polys.indexOf(element), 1);
+            map.removeLayer(element.polygon);
+        });
+    });
+    polys.forEach(element => {
+        map.addLayer(element.polygon);
+    });
+}
+
 /// Initialize
 
 var polylineStatic = L.polyline([]).setStyle({
@@ -280,38 +304,52 @@ var decoratorStatic = L.polylineDecorator(polylineStatic, {
     ]
 }).addTo(map);
 
-function drawPolys(newPolygons) {
-    //newPolygons is an array of {latlng:..., isObstacle:...}
+function drawPolys(newPolys) {
+    //newPolygons is an array of {latlng:..., isObstacle:..., id:...}
     polys.forEach(element => {
-        map.remove(element);
+        map.removeLayer(element);
     });
     newPolys.forEach(element => {
-        var pl = L.Polygon(element.latlng);
+        var pl = new L.Polygon(element.latlng);
         var polyColor = element.isObstacle ? "red" : "green";
         pl.setStyle({color: polyColor});
-        polys.append(pl);
-        pl.addTo(map);
+        var new_id = polys.length;
+        polys.push({
+            polygon: pl,
+            id: new_id,
+            isObstacle: element.isObstacle
+        });
+        pl.bindTooltip("id : " + new_id, {permanent: false, direction:"center"}).openTooltip()
+        
+        updatePolyList();
     });
 }
 
 function download(content, fileName, contentType) {
     var a = document.createElement("a");
 
-    wplist = []
-    content.forEach(element => {
-        wplist.push({
-            latlong:element.latlong,
-            id: element.id
-        })
-    });
-
-    var file = new Blob([JSON.stringify(wplist)], {type: contentType});
+    var file = new Blob([JSON.stringify(content)], {type: contentType});
     a.href = URL.createObjectURL(file);
     a.download = fileName;
     a.click();
 }
 $('.downloadBtn').click(function(event) {
-    download(wayPointsList, 'mission.json', 'application/json');
+    var pl = [];
+    polys.forEach(element => {
+        var ll = [];
+        element.polygon._latlngs[0].forEach(latlongs => {
+            if (latlongs.lat != undefined && latlongs.lng != undefined) {
+                ll.push([latlongs.lat, latlongs.lng]);
+            }
+        });
+        pl.push({
+            id: element.id,
+            isObstacle: element.isObstacle,
+            latlng: ll
+        })
+    });
+
+    download(pl, 'polygons.json', 'application/json');
 });
 
 function readSingleFile(e) {
@@ -323,11 +361,24 @@ function readSingleFile(e) {
 
     reader.onload = function(e) {
         var contents = e.target.result;
-        updateWPList(JSON.parse(contents));
-        updatePath();
+        var pl = JSON.parse(contents);
+        drawPolys(pl);
+        updatePolyList();
     };
     reader.readAsText(file);
   }
 
   
 $("#file-input").on('change', readSingleFile);
+
+var updateLogs = function() {
+    //$(".terminal-home")
+}
+
+logs = [];
+// socket.on("rosInfo", function (data) {
+//     console.log(data);
+//     logs.push(data);
+//     logs.length = 10;
+//     updateLogs();
+//})

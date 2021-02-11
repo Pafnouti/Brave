@@ -287,10 +287,6 @@ class Routeur():
     def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=40, pas_t=0.5, nb_iso=7, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
         cout('Starting...')
 
-        no_go_zones = (Polygon(((200, 0), (200, -200), (300, -200), (300, 0))))
-        safe_zones = (Polygon(((600, -400), (600, 200), (-100, 200), (-100, -400))))
-
-
         #pour debug : 
         self.cargos = cargos
 
@@ -350,11 +346,10 @@ class Routeur():
         t_2 = []
         t_3 = []
 
-        safe_zones = safe_zones.intersection(cercle)
-        
         if DEBUG:
             plt.plot(*no_go_zones.exterior.xy)
             plt.plot(*safe_zones.exterior.xy)
+
 
         # boucle principale
         while i_iso < 3*nb_iso and not target_in:
