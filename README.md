@@ -20,8 +20,13 @@
  ```
  
  **main.launch**
+ 
  This file will launch all the nodes required to run on the sailboat.
+ 
  **sim.launch**
+ 
  This file will launch all the nodes required to run a simulated sailboat.
+ 
   **debug.launch**
+  
  This file will launch only the interface server.
