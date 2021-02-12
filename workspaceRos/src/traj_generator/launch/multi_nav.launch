@@ -1,0 +1,32 @@
+<launch>
+
+    <node name="vessel1" pkg="traj_generator" type="traj_gen.py" output="screen" clear_params="true">
+        <param name="imo" value= "1"/>
+        <!-- Le premier navire se dirige vers le sud ouest : cap entre 180 et 270° -->
+        <param name="lat0" value= "48.43"/>
+        <param name="lon0" value= "-4.61"/>
+        <param name="latf" value= "48.41"/>
+        <param name="lonf" value= "-4.63"/>
+    </node>
+
+    <node name="vessel2" pkg="traj_generator" type="traj_gen.py" output="screen" clear_params="true">
+        <param name="imo" value= "2"/>
+        <!-- Le second navire se dirige vers l'ouest : cap = 270° -->
+        <param name="lat0" value= "48.42"/>
+        <param name="lon0" value= "-4.62"/>
+        <param name="latf" value= "48.42"/>
+        <param name="lonf" value= "-4.63"/>
+    </node>
+
+    <node name="vessel3" pkg="traj_generator" type="traj_gen.py" output="screen" clear_params="true">
+        <param name="imo" value= "3"/>
+        <!-- Le second navire se dirige vers le sud : cap = 180° -->
+        <param name="lat0" value= "48.44"/>
+        <param name="lon0" value= "-4.60"/>
+        <param name="latf" value= "48.43"/>
+        <param name="lonf" value= "-4.60"/>
+    </node>
+
+    <node name="ais_simulator" pkg="ais_simulator" type="ais_simu.py" output="screen" cwd="node"/>
+
+</launch>

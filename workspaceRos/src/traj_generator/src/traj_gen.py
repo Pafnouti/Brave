@@ -14,25 +14,26 @@ SPEED_RATE = 20 # La vitesse réelle du navire est 20 fois plus rapide que la vi
 
 # VALEURS À MODIFIER SI BESOIN
 # Origine repère Ty Colo
-lat0 = 48.431775
-lon0 = -4.615529
+# lat0 = 48.431775
+# lon0 = -4.615529
 # Point final à atteindre
-latf = 48.42
-lonf = -4.62
+# latf = 48.42
+# lonf = -4.62
 
 class TrajGenerator():
 
-    def __init__(self, rosrate=10):
+    def __init__(self, imo, lat0, lon0, latf, lonf, rosrate=10):
 
         self.pub_trajInfo = rospy.Publisher('/trajInfo', TrajInfo, queue_size=10)
         self.pub_posNavire = rospy.Publisher('/posNavire', Pose2D, queue_size=10)
 
         self.rate = rospy.Rate(rosrate) # fréquence à laquelle le main se répète : rosrate = 10Hz (boucle toutes les 100 ms)
 
-        self.lon0 = lat0
-        self.lat0 = lon0
-        self.lonf = latf
-        self.latf = lonf
+        self.imo = imo        
+        self.lat0 = lat0
+        self.lon0 = lon0
+        self.latf = latf
+        self.lonf = lonf
 
         # Coordonnées du point initial de la trajectoire du navire simulé en longitude, latitude
         self.a = np.array([[self.lon0], [self.lat0]])
@@ -44,14 +45,27 @@ class TrajGenerator():
         # Coordonnées cartésiennes (x,y) du point final de la trajectoire du navire
         self.xf, self.yf = self.WGS84_to_cart(self.lonf, self.latf)
 
+        self.x0 = 0
+        self.y0 = 0
+
+        self.xf = (np.pi/180.)*EARTH_RADIUS*(self.lonf-self.lon0)*np.cos((np.pi/180.)*self.latf)
+        self.yf = (np.pi/180.)*EARTH_RADIUS*(self.latf-self.lat0)
+
         # On initialise les variables du navire au point a (lon0, lat0)
         self.longitude = self.lon0
         self.latitude = self.lat0
         self.x = self.x0
         self.y = self.y0
         self.vitesse_nd = 0
-        self.heading = 0
-        self.imo = 9403815
+
+        # Route sur le fond en degrés (le cap)
+        # C'est l'angle exprimé en degrés (de 0 à 360°), dans le sens des aiguilles d'une montre, 
+        # entre la direction du Nord et celle du navire.
+        # Le cap est constant au cours du temps puisque le navire se déplace en ligne droite.
+        # Le cap ne dépend que de la position initiale et de la position finale.
+        self.heading = (np.arctan2(self.xf, self.yf) - np.arctan2(0, 1))*180/np.pi
+        if self.heading < 0 :
+            self.heading = 360 - abs(self.heading)
 
         self.t0 = rospy.get_rostime() # on initialise le temps
         self.time_simu = 0
@@ -134,26 +148,14 @@ class TrajGenerator():
 
         x_next = self.x - dx
         y_next = self.y - dy
-        print(dx, dy)
 
         # Longitude et latitude du bateau
         lon_next, lat_next = self.cart_to_WGS84(x_next, y_next)
-
-        # Route sur le fond en degrés (le cap)
-        # C'est l'angle exprimé en degrés (de 0 à 360°), dans le sens des aiguilles d'une montre, 
-        # entre la direction du Nord et celle du navire.
-        #heading = abs(self.Rad2Deg(np.arctan2(-dx, -dy) - np.arctan2(0, 1)))
-        #heading = abs(self.Rad2Deg(np.arctan2(self.xf, self.yf) - np.arctan2(0, 1)))
-        heading = self.Rad2Deg(np.arctan2(self.xf, self.yf) - np.arctan2(0, 1))
-        if heading < 0 :
-            heading = 360 - abs(heading)
 
         # Vitesse sur le fond en nœuds (2,69 nd = 4,98 km/h)
         long_i, lat_i = self.cart_to_WGS84(self.x, self.y)
         long_f, lat_f = self.cart_to_WGS84(x_next, y_next)
         d = self.calcul_distance(long_i, lat_i, long_f, lat_f)  # distance réelle parcourue par le navire pendant dT (en mètres)
-        print("Distance parcourue pendant dT")
-        print(d)
 
         v = (d/self.dT) # vitesse réelle du navire en m/s
         v_kmh = v*3.6 # conversion en km/h
@@ -164,12 +166,12 @@ class TrajGenerator():
         self.y = y_next
         latitude, longitude = lat_next, lon_next
 
-        return latitude, longitude, v_nd, heading
+        return latitude, longitude, v_nd
 
 
     def main(self):
 
-        self.latitude, self.longitude, self.vitesse_nd, self.heading = self.move_navire(self.dx, self.dy)
+        self.latitude, self.longitude, self.vitesse_nd = self.move_navire(self.dx, self.dy)
 
         # Temps en secondes
         t_next = rospy.get_rostime() # on récupère le temps actuel
@@ -198,6 +200,7 @@ class TrajGenerator():
         trajectory_info.heading = self.heading
         trajectory_info.imo = self.imo
 
+        """
         print("Temps réel écoulé depuis le début de la simulation (secondes)")
         print(int(self.time_simu))
         print("Latitude (degrés)")
@@ -210,6 +213,7 @@ class TrajGenerator():
         print(self.heading)
         print("ID")
         print(self.imo)
+        """
 
         pos_nav = Pose2D()
         pos_nav.x = self.x
@@ -225,7 +229,15 @@ class TrajGenerator():
 
 if __name__ == "__main__":
     rospy.init_node('traj_generator', anonymous=True)
-    traj_generator = TrajGenerator()
+
+    imo = rospy.get_param("~imo")
+    lat0 = rospy.get_param("~lat0")
+    lon0 = rospy.get_param("~lon0")
+    latf = rospy.get_param("~latf")
+    lonf = rospy.get_param("~lonf")
+
+    traj_generator = TrajGenerator(imo, lat0, lon0, latf, lonf)
+
     while not rospy.is_shutdown():
         traj_generator.main()
         traj_generator.rate.sleep()
