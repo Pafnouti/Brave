@@ -19,6 +19,7 @@ os.chdir(dname)
 
 DEBUG = False
 deep_DEBUG = False
+d_min_ENABLED = True
 
 
 def distanceAB(A, B):
@@ -198,16 +199,24 @@ class Routeur():
             plt.plot(bnd[:, 0], bnd[:, 1])
             plt.show()
 
-        print(bnd[0])
-
         return bnd
 
-    def sort_dist(self, points, centre):
+    def sort_dist(self, points, centre, coeff_min=0):
 
         distances = cdist(centre, points[:, :2]).flatten()
         i_d = np.argsort(distances)
-    
+
+        d_min = distances.mean()*coeff_min
+        
+
+        if d_min_ENABLED:
+            i = 0
+            while i < len(distances) and distances[i_d[i]] < d_min:
+                i += 1
+            return points[i_d[i:], :]
         return points[i_d, :]
+    
+        
 
     def in_poly(self, points, poly):
         pts = np.zeros((1, 3))
@@ -227,15 +236,21 @@ class Routeur():
         B = np.array((B[0], B[1])).reshape(1, -1)
         C = np.array((C[0], C[1])).reshape(1, -1)
            
-        
-        nb_secteurs = 150
-        secteurs = np.linspace(0, 2*np.pi, nb_secteurs)
+        points = self.sort_dist(points, A, coeff_min=0.6)
 
         # on determine tous les angles entre les pts et A
         angles = np.arctan2(points[:, 1] - A[0, 1], points[:, 0] - A[0, 0]).reshape(-1, 1)%(2*np.pi)
         points = np.hstack((points, angles))
 
         points2 = np.zeros((1, 3))
+
+        angle_min, angle_m, angle_max = angles.min(), angles.mean(), angles.max()
+        if not angle_min < angle_m:
+            angle_min, angle_max = angle_max, angle_min
+
+        nb_secteurs = 200
+        secteurs = np.linspace(angle_min, angle_max, nb_secteurs)
+
 
         for i in range(nb_secteurs - 1):
 
@@ -245,9 +260,10 @@ class Routeur():
             # plt.scatter(points[:, 0], points[:, 1])
             # plt.scatter(pts[:, 0], pts[:, 1])
             # plt.scatter(A[0], A[1])
-            
+        
 
-            pts = self.sort_dist(pts[:, :-1], A)
+            #pts = self.sort_dist(pts[:, :-1], A, d_min=d_mean*0.5)
+
 
             if len(pts) != 0:
                 
@@ -258,10 +274,10 @@ class Routeur():
                     j = int(pts[-1, 2])
                     lst_pt = (lst_points[j, 0], lst_points[j, 1])
 
-                    plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
+                    if deep_DEBUG : plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
 
-                    if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or not LineString((cur_pt, lst_pt)).within(safe_zones):
-                        ok = False 
+                    if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or ((not LineString((cur_pt, lst_pt)).within(safe_zones)) and not safe_zones.is_empty):
+                        ok = False
                         
                     if ok:
                         pts = pts[-1, :]
@@ -284,7 +300,7 @@ class Routeur():
         return points
 
 
-    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=40, pas_t=0.5, nb_iso=7, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
+    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=30, pas_t=0.5, nb_iso=10, cargos={'0':{'pos':(-100, -200), 'v':3, 'cap':0}}, ):
         cout('Starting...')
 
         #pour debug : 
@@ -341,14 +357,17 @@ class Routeur():
         target_in = False
         target_near = False
         pas2 = pas_t #stockage du pas pour le réduire quand on s'approche de l'arrivée
+        d_min = 1
 
         t_1 = []
         t_2 = []
         t_3 = []
 
         if DEBUG:
-            plt.plot(*no_go_zones.exterior.xy)
-            plt.plot(*safe_zones.exterior.xy)
+            if not no_go_zones.is_empty:
+                plt.plot(*no_go_zones.exterior.xy)
+            if not safe_zones.is_empty:
+                plt.plot(*safe_zones.exterior.xy)
 
 
         # boucle principale
@@ -357,7 +376,7 @@ class Routeur():
             t0 = time.time()
 
             if target_near:
-                pas_t = pas2/3
+                pas_t = pas2*d_min/dAB + 0.1*pas2
             iso = np.zeros((1, 3))
 
             # on update la pos des cargos :
@@ -375,11 +394,11 @@ class Routeur():
                     y += pt[1]
                                              
                     # ou pour 3/4 de cercle plutot ;)
-                    if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4 and cercle2.intersection(Point(x, y))) or i_iso < 1:
-                        if iso.shape[0] == 1:
-                            iso = np.array(((x[0], y[0], j)))
-                        else:
-                            iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
+                    #if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4 and cercle2.intersection(Point(x, y))) or i_iso < 1:
+                    if iso.shape[0] == 1:
+                        iso = np.array(((x[0], y[0], j)))
+                    else:
+                        iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
             
                        
             t1 = time.time()
@@ -402,19 +421,21 @@ class Routeur():
 
 
             # conditions d'arrêt
-            for i in range(pts.shape[0]):
-                if distanceAB(B, pts[i, :2]) < 0.4*dAB/nb_iso:
-                    target_in = True
-                elif distanceAB(B, pts[i, :2]) < 2*dAB/nb_iso:
-                    target_near = True
-            if target_in:
-                cout("Target in !")
-            elif target_near:
-                cout('Target near !')
+            distancesB = cdist(np.array((B)).reshape(1, -1), pts[:, :2])
+            d_min = distancesB.min()
+            if d_min < 0.2*dAB/nb_iso:
+                target_in = True
+            elif d_min < 1.1*dAB/nb_iso:
+                target_near = True
+            if deep_DEBUG:
+                if target_in:
+                    cout("Target in !")
+                elif target_near:
+                    cout('Target near !')
                 
             t += pas_t
    
-        cout('temps (%) : ', np.mean(t_1)/(np.mean(t_2) + np.mean(t_1))*100)
+        cout('temps : {}, {}'.format(np.mean(t_1), np.mean(t_2)))
 
         #pts_to_check = np.vstack((points[-1], points[-2]))
         pt = points[-1][cdist([np.array(((B[0], B[1])))], points[-1][:, :2]).argmin()]
@@ -444,6 +465,7 @@ if __name__ == "__main__":
 
     DEBUG = True
     deep_DEBUG = True
+    d_min_ENABLED = True
 
     
     routeur = Routeur()

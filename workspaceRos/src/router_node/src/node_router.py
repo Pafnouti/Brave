@@ -131,7 +131,7 @@ class Router():
 
     def _callback_routing(self, msg):
         self.activated = msg.data
-        #print('cb routage')
+        print('cb routage')
         if not self.calculating:
             self.main()
 
