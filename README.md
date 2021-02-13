@@ -30,3 +30,19 @@
   **debug.launch**
   
  This file will launch only the interface server.
+
+ ## Router Node
+ A Router is an algoithm that find the best trajectory for a sailboat. 
+ There are many ways to do it, but one of the most popular is a isochrone based algorithm. 
+ The inputs are the boat polar, the wind at each point and at each time, obstacles and safe zones.
+ The algorithm determines where the sailboat can be at a given times.
+
+ To launch the router alone :
+ '''shell
+ $ python workspaceRos/src/router/src/router.py
+ '''
+
+ To launch the node :
+ '''shell
+ $ roslaunch router router.launch
+ '''
