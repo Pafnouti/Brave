@@ -33,7 +33,7 @@
 
  ## Router Node
  A Router is an algoithm that find the best trajectory for a sailboat. 
- There are many ways to do it, but one of the most popular is a isochrone based algorithm. 
+ There are many ways to do it, one of which uses isochrones. 
  The inputs are the boat polar, the wind at each point and at each time, obstacles and safe zones.
  The algorithm determines where the sailboat can be at a given times.
 
