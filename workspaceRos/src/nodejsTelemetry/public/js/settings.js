@@ -41,6 +41,11 @@ socket.on("settings", function(data) {
     });
 });
 
-$("#submitSettings").click(function (e) { 
+$("#submitSettings").click(function (e) {
+    settings.forEach(element => {
+        if(element.type == "int") {
+            element.value = Number(element.value);
+        }
+    });
     socket.emit("newSettings", settings);
 });

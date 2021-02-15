@@ -39,16 +39,22 @@ var waypoints = [
 ];
 var settings = [
   {
-    variable: "line_Distance",
+    variable: "router_child_number",
     type: "int",
-    value: 5,
-    description: "Allowed distance to the line"
+    value: 40,
+    description: "Number of points children of each point"
   },
   {
-    variable: "tacking_Angle",
+    variable: "router_angular_def",
     type: "int",
-    value: 35,
-    description: "Minimum allowed tacking angle"
+    value: 200,
+    description: "Number of angular sectors"
+  },
+  {
+    variable: "router_iso_nb",
+    type: "int",
+    value: 10,
+    description: "Number of isochrons (= number of waypoints)"
   },
 ];
 var currWP = 0;
@@ -213,8 +219,12 @@ io.on('connection', function (socket) {
 
   socket.on('newSettings', function (data) {
     settings = data; //sanitize here ?
+    settings.forEach(element => {
+      rosnodejs.setParam(element.type, element.value);
+    });
     console.log(data);
     socket.broadcast.emit('settings', settings);
+    newParam = true;
   });
 
   var tgt_msg = new geometry_msgs.Pose2D();
@@ -289,11 +299,9 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('currentTarget', currWP);
     if (newWps) {
       socket.emit('staticWP', waypoints);
-      console.log("sent");
     }
     if (newPoly) {
       socket.emit('newPolys', polys);
-      console.log("sent polys !");
     }
     if (newLogs) {
       logs.forEach(element => {

@@ -294,7 +294,7 @@ var updateStaticWPList = function (wps) {
 var updatePolyList = function() {
     $("#polyList").empty();
     polys.forEach(element => {
-        $("#polyList").append('<li class="list-group-item wpItem" id="' + element.id + '"> Polygon with ID : ' + element.id + '<button class="btn btn-danger deletePoly" id="deletePoly'+element.id+'" type="button">-</button></li>');
+        $("#polyList").append('<li class="list-group-item wpItem" id="' + element.id + '"> Polygon with ID : ' + element.id + ' <img src="images/'+ (element.isObstacle ? "redPoly" : "greenPoly") +'.png"> <button class="btn btn-danger deletePoly" id="deletePoly'+element.id+'" type="button">-</button></li>');
         $("#deletePoly"+element.id).click(function (event) {
             $(this).closest("li").remove();
             console.log(element.isObstacle);
