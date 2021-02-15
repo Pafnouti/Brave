@@ -272,13 +272,16 @@ io.on('connection', function (socket) {
     tgt_msg.y = data.lon;
     routing_tgt_pub.publish(tgt_msg)
   });
+  socket.on("gotWP", function(data){
+    newWps = false;
+    console.log("Comfirmed reception");
+  });
   setInterval(function () {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
     if (newWps) {
-      console.log("sent");
       socket.broadcast.emit('staticWP', waypoints);
-      newWps = false;
+      console.log("sent");
     }
     if (newPoly) {
       socket.broadcast.emit('newPolys', polys)

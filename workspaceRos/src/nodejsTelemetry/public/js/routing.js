@@ -5,8 +5,10 @@ var polys = [];
 
 /// Socket.io
 socket.on("staticWP", function(data) {
+    console.log(data);
     currID = data.length;
     updateStaticWPList(data);
+    socket.emit('gotWP', null);
 });
 
 socket.emit("getStaticWP");
@@ -242,7 +244,6 @@ $(".submitPolys").click(function (event) {
 
 
 var updateStaticWPList = function (wps) {
-    console.log(wps);
     //wps must contain an id and a latlong array at the bare minimum
     staticWaypoints.forEach(element => {
         if (element.marker) {
