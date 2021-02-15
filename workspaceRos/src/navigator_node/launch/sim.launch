@@ -9,4 +9,6 @@
 	<node name="nodejs" pkg="nodejsTelemetry" type="launcher.py" output="screen" cwd="node"/>
 
 	<node name="simulator" pkg="simulator_node" type="node.py" output="screen"/>
+	
+	<include file="$(find router)/launch/router.launch"/>
 </launch>

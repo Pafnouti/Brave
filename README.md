@@ -13,19 +13,20 @@
  #brave's password : brave
  ```
 
- ## Launch the line following (main mission)
+ ## Launch the nodes
+ The folder workspaceRos/src/navigator_node/launch/ contains our entry points.
   ```shell
- $ roslaunch controller controller.launch
+ $ roslaunch navigator_node main.launch
  ```
- This file will launch the maestro, ublox and line following nodes.
- ### Topic
- **Publisher**: /Command
-
- **Subscriber**:/ublox/GPRMC <br/>
-                /ublox/HCHDG <br/>
-                /ublox/WIMDA <br/>
-                /ublox/WIMWV <br/>
  
-
-
+ **main.launch**
  
+ This file will launch all the nodes required to run on the sailboat.
+ 
+ **sim.launch**
+ 
+ This file will launch all the nodes required to run a simulated sailboat.
+ 
+  **debug.launch**
+  
+ This file will launch only the interface server.

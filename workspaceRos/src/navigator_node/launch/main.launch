@@ -7,5 +7,5 @@
 	
 	<node name="navigator" pkg="navigator_node" type="navigator.py" output="screen"/>
 	<node name="nodejs" pkg="nodejsTelemetry" type="launcher.py" output="screen" cwd="node"/>
-
+	<include file="$(find router)/launch/router.launch"/>
 </launch>
