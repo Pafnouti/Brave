@@ -18,6 +18,7 @@ os.chdir(dname)
 
 DEBUG = False
 deep_DEBUG = False
+d_min_ENABLED = True
 
 
 def distanceAB(A, B):
@@ -197,17 +198,30 @@ class Routeur():
             plt.plot(bnd[:, 0], bnd[:, 1])
             plt.show()
 
-        print(bnd[0])
-
         return bnd
 
-    def sort_dist(self, points, centre):
+    def sort_dist(self, points, A, B, coeff_min=0):
+        #distances = np.dot(points[:, :2]-A, (B-A).T).flatten()
+        #distances = cdist(A, points[:, :2]).flatten() - cdist(B, points[:, :2]).flatten()
+        #distances = cdist(B, points[:, :2]).flatten()
+        distances = cdist(A, points[:, :2]).flatten()
+        #distances = cdist(A, points[:, :2]).flatten() - 0.5*cdist(B, points[:, :2]).flatten() + 0*np.dot(points[:, :2]-A, (B-A).T).flatten()
 
-        distances = cdist(centre, points[:, :2]).flatten()
         i_d = np.argsort(distances)
-    
-        return points[i_d, :]
 
+        d_min = distances.mean()*coeff_min
+        
+
+        if False:
+            i = 0
+            while i < len(distances) and distances[i_d[i]] < d_min:
+                i += 1
+            return points[i_d[i:], :]
+
+        
+
+        return points[i_d, :]
+    
     def in_poly(self, points, poly):
         pts = np.zeros((1, 3))
         for i in range(points.shape[0]):
@@ -218,23 +232,28 @@ class Routeur():
                     pts.vstack((pts, points[i, :]))
         return pts
 
-
-    def compute_iso2(self, points, lst_points, A, B, C, r, no_go_zones, safe_zones):
+    def compute_iso2(self, points, lst_points, A, B, no_go_zones, safe_zones, nb_secteurs=200):
 
 
         A = np.array((A[0], A[1])).reshape(1, -1)
         B = np.array((B[0], B[1])).reshape(1, -1)
-        C = np.array((C[0], C[1])).reshape(1, -1)
            
-        
-        nb_secteurs = 150
-        secteurs = np.linspace(0, 2*np.pi, nb_secteurs)
+        points = self.sort_dist(points, A, B, coeff_min=0)
 
         # on determine tous les angles entre les pts et A
         angles = np.arctan2(points[:, 1] - A[0, 1], points[:, 0] - A[0, 0]).reshape(-1, 1)%(2*np.pi)
+        #angles = np.arctan2(points[:, 1] - B[0, 1], points[:, 0] - B[0, 0]).reshape(-1, 1)%(2*np.pi)
         points = np.hstack((points, angles))
+        
 
         points2 = np.zeros((1, 3))
+
+        angle_min, angle_m, angle_max = angles.min(), angles.mean(), angles.max()
+        if not angle_min < angle_m:
+            angle_min, angle_max = angle_max, angle_min
+
+        secteurs = np.linspace(angle_min, angle_max, nb_secteurs)
+
 
         for i in range(nb_secteurs - 1):
 
@@ -244,37 +263,39 @@ class Routeur():
             # plt.scatter(points[:, 0], points[:, 1])
             # plt.scatter(pts[:, 0], pts[:, 1])
             # plt.scatter(A[0], A[1])
-            
+        
 
-            pts = self.sort_dist(pts[:, :-1], A)
+            #pts = self.sort_dist(pts[:, :-1], A, d_min=d_mean*0.5)
+
 
             if len(pts) != 0:
                 
-                if cdist(C, pts[-1, :2].reshape(1, -1)) < r :
-                    ok = True
+                #if cdist(C, pts[-1, :2].reshape(1, -1)) < r :
+                ok = True
+                
+                cur_pt = (pts[-1, 0], pts[-1, 1])
+                j = int(pts[-1, 2])
+                lst_pt = (lst_points[j, 0], lst_points[j, 1])
+
+                if deep_DEBUG : plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
+
+                if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or ((not LineString((cur_pt, lst_pt)).within(safe_zones)) and not safe_zones.is_empty):
+                    ok = False
                     
-                    cur_pt = (pts[-1, 0], pts[-1, 1])
-                    j = int(pts[-1, 2])
-                    lst_pt = (lst_points[j, 0], lst_points[j, 1])
+                if ok:
+                    pts = pts[-1, :]
 
-                    plt.plot([cur_pt[0], lst_pt[0]], [cur_pt[1], lst_pt[1]])
-
-                    if LineString((cur_pt, lst_pt)).crosses(no_go_zones) or not LineString((cur_pt, lst_pt)).within(safe_zones):
-                        ok = False 
-                        
-                    if ok:
-                        pts = pts[-1, :]
-
-                        if points2.shape[0] == 1 :
-                            points2 = pts
-                        else:
-                            points2 = np.vstack((points2, pts))
+                    if points2.shape[0] == 1 :
+                        points2 = pts
+                    else:
+                        points2 = np.vstack((points2, pts))
 
         if deep_DEBUG:
             plt.scatter(points[:, 0], points[:, 1])
             plt.scatter(points2[:, 0], points2[:, 1])
             plt.scatter(A[0, 0], A[0, 1])
             plt.scatter(B[0, 0], B[0, 1])
+            plt.plot(*safe_zones.exterior.xy)
             plt.show()
             
         points = points2
@@ -283,7 +304,7 @@ class Routeur():
         return points
 
 
-    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=MultiPolygon(), def_ang=40, pas_t=0.5, nb_iso=7, cargos={'0':{'pos':(-100, -200), 'v':5, 'cap':0}}, ):
+    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=Polygon(), def_ang=40, nb_iso=10, nb_secteurs=200, cargos={'0':{'pos':(-100, -200), 'v':0, 'cap':0}}, ):
         cout('Starting...')
 
         #pour debug : 
@@ -318,13 +339,16 @@ class Routeur():
         # c'est le cercle dans lequelle on peut faire les calculs, pour optimiser et que le voilier ne cherche pas à aller dans la direction opposée du point d'arrivée
         C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
         cercle = []
-        r = distanceAB(A, B)/2*1.2
+        r = distanceAB(A, B)
         for a in angles:
             p = C[0]+r*np.cos(a), C[1]+r*np.sin(a)
             cercle.append(p)
         cercle_np = np.array(cercle)
         cercle = Polygon(cercle_np)
-
+        if safe_zones.is_empty:
+            safe_zones = cercle
+        safe_zones = safe_zones.intersection(cercle)
+        plt.plot(*safe_zones.exterior.xy)
         # le deuxième cercle sert pour généré les points, le premier, plus petit pour selectionner les lignes (cf alphashape)
         cercle_2 = []
         r2 = r*1.2
@@ -340,14 +364,17 @@ class Routeur():
         target_in = False
         target_near = False
         pas2 = pas_t #stockage du pas pour le réduire quand on s'approche de l'arrivée
+        d_min = 1
 
         t_1 = []
         t_2 = []
         t_3 = []
 
         if DEBUG:
-            plt.plot(*no_go_zones.exterior.xy)
-            plt.plot(*safe_zones.exterior.xy)
+            if not no_go_zones.is_empty:
+                plt.plot(*no_go_zones.exterior.xy)
+            if not safe_zones.is_empty:
+                pass#plt.plot(*safe_zones.exterior.xy)
 
 
         # boucle principale
@@ -356,7 +383,7 @@ class Routeur():
             t0 = time.time()
 
             if target_near:
-                pas_t = pas2/3
+                pas_t = pas2*d_min/dAB + 0.1*pas2
             iso = np.zeros((1, 3))
 
             # on update la pos des cargos :
@@ -374,11 +401,11 @@ class Routeur():
                     y += pt[1]
                                              
                     # ou pour 3/4 de cercle plutot ;)
-                    if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4 and cercle2.intersection(Point(x, y))) or i_iso < 1:
-                        if iso.shape[0] == 1:
-                            iso = np.array(((x[0], y[0], j)))
-                        else:
-                            iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
+                    #if (abs(getAngleABC(A, pt[:2], (x, y))) > np.pi/4 and cercle2.intersection(Point(x, y))) or i_iso < 1:
+                    if iso.shape[0] == 1:
+                        iso = np.array(((x[0], y[0], j)))
+                    else:
+                        iso = np.vstack((iso, np.array(((x[0], y[0], j)))))
             
                        
             t1 = time.time()
@@ -389,7 +416,7 @@ class Routeur():
             if i_iso > 0:
                 cout('computing iso ({}): {}'.format(iso.shape[0], i_iso))
                 if deep_DEBUG : plt.plot(cercle_np[:, 0], cercle_np[:, 1])
-                pts = self.compute_iso2(iso, points[-1], A, B, C, r, no_go_zones, safe_zones)
+                pts = self.compute_iso2(iso, points[-1], A, B, no_go_zones, safe_zones, nb_secteurs)
             else:
                 pts = iso
 
@@ -401,19 +428,21 @@ class Routeur():
 
 
             # conditions d'arrêt
-            for i in range(pts.shape[0]):
-                if distanceAB(B, pts[i, :2]) < 0.4*dAB/nb_iso:
-                    target_in = True
-                elif distanceAB(B, pts[i, :2]) < 2*dAB/nb_iso:
-                    target_near = True
-            if target_in:
-                cout("Target in !")
-            elif target_near:
-                cout('Target near !')
+            distancesB = cdist(np.array((B)).reshape(1, -1), pts[:, :2])
+            d_min = distancesB.min()
+            if d_min < 0.2*dAB/nb_iso:
+                target_in = True
+            elif d_min < 1.1*dAB/nb_iso:
+                target_near = True
+            if deep_DEBUG:
+                if target_in:
+                    cout("Target in !")
+                elif target_near:
+                    cout('Target near !')
                 
             t += pas_t
    
-        cout('temps (%) : ', np.mean(t_1)/(np.mean(t_2) + np.mean(t_1))*100)
+        cout('temps : {}, {}'.format(np.mean(t_1), np.mean(t_2)))
 
         #pts_to_check = np.vstack((points[-1], points[-2]))
         pt = points[-1][cdist([np.array(((B[0], B[1])))], points[-1][:, :2]).argmin()]
@@ -442,13 +471,16 @@ if __name__ == "__main__":
 
 
     DEBUG = True
-    deep_DEBUG = True
+    deep_DEBUG = False
+    d_min_ENABLED = True
+
+    #s_z = Polygon(((-50, 50), (-50, -400), (450, -400), (450, 50), (350, 50), (350, -300), (50, -300), (50, 50)))
 
     
     routeur = Routeur()
     #routeur.show_alpha()
     #routeur.polaire_plot()
-    A, B = (0, 0), (420, -325)
+    A, B = (0, 0), (420, 20)
     plt.scatter((A[0], B[0]), (A[1], B[1]))
     C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
     cercle = []
@@ -459,14 +491,16 @@ if __name__ == "__main__":
         cercle.append(p)
     cercle_np = np.array(cercle)
 
-    traj, iso = routeur.run(A, B)
+    traj, iso = routeur.run(A, B)#, safe_zones=s_z)
     for i in iso:
-        plt.scatter(i[:, 0], i[:, 1])
+        plt.scatter(i[:, 0], i[:, 1], s=4)
     for p_c in routeur.poly_cargos[:]:
         plt.plot(p_c[0], p_c[1])
+
     
-    plt.plot(traj[0], traj[1])
-    plt.plot(cercle_np[:, 0], cercle_np[:, 1])
+    
+    plt.plot(traj[0], traj[1], c='red')
+    #plt.plot(cercle_np[:, 0], cercle_np[:, 1])
     plt.show()
 
 

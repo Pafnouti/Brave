@@ -46,3 +46,19 @@ They can be pip-installed.
  $ ssh brave@192.168.0.55
  #brave's password : brave
  ```
+
+ ## Router Node
+ A Router is an algoithm that find the best trajectory for a sailboat. 
+ There are many ways to do it, one of which uses isochrones. 
+ The inputs are the boat polar, the wind at each point and at each time, obstacles and safe zones.
+ The algorithm determines where the sailboat can be at a given times.
+
+ To launch the router alone :
+ '''shell
+ $ python workspaceRos/src/router/src/router.py
+ '''
+
+ To launch the node :
+ '''shell
+ $ roslaunch router router.launch
+ '''

@@ -12,6 +12,7 @@ from controller.msg import Line, Wind, UniquePolygonArray
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64MultiArray, Int32, String
+from rcl_interfaces.srv import GetParameters
 
 
 
@@ -69,6 +70,8 @@ class Router():
         rospy.Subscriber('/Wind', Wind, self._callback_wind)
         rospy.Subscriber('/AIVDM', String, self._callback_aivdm)
         rospy.Subscriber('/Polys', UniquePolygonArray, self._callback_polys)
+
+        
 
         self.calculating = False
 
@@ -131,7 +134,7 @@ class Router():
 
     def _callback_routing(self, msg):
         self.activated = msg.data
-        #print('cb routage')
+        print('cb routage')
         if not self.calculating:
             self.main()
 
@@ -147,22 +150,35 @@ class Router():
 
             B = WGS84_to_cart(self.target[0], self.target[1])
 
+            try:
+                child_nb = rospy.get_param("router_child_nb")
+                angular_def = rospy.get_param("router_angular_def")
+                iso_nb = rospy.get_param("router_iso_nb")
+            except:
+                rospy.logwarn("Impossible de récuperer les paramètres du serveur")
+                child_nb = 40
+                angular_def = 150
+                iso_nb = 10
 
             # lancement du calcul par le routeur
-            traj, iso = self.routeur.run(self.state, B, safe_zones=self.safeZone, no_go_zones=self.noGoZone, cargos=self.cargos)
+            try:
+                traj, iso = self.routeur.run(self.state, B, safe_zones=self.safeZone, no_go_zones=self.noGoZone, cargos=self.cargos, def_ang=child_nb, nb_iso=nb_iso, nb_secteurs=angular_def)
+                # envoie des données via ROS
+                self.wps = Float64MultiArray()
+                wps_tmp = []
+                for i in range(len(traj[0])):
+                    x, y = traj[0][i], traj[1][i]
+                    lat, lon = cart_to_WGS84(x, y)
+                    wps_tmp.append(lat)
+                    wps_tmp.append(lon)
+                self.wps.data = wps_tmp
+                self.pub_wps.publish(self.wps)
+                rospy.loginfo('Waypoints envoyés')
+            except:
+                rospy.logwarn("Erreur : Impossible de calculer le trajet optimal. Verifiez vos variables d'entrée")
 
 
-            # envoie des données via ROS
-            self.wps = Float64MultiArray()
-            wps_tmp = []
-            for i in range(len(traj[0])):
-                x, y = traj[0][i], traj[1][i]
-                lat, lon = cart_to_WGS84(x, y)
-                wps_tmp.append(lat)
-                wps_tmp.append(lon)
-            self.wps.data = wps_tmp
-            self.pub_wps.publish(self.wps)
-            rospy.loginfo('Waypoints envoyés')
+            
             self.calculating = False
         else:
             print('not routing')
