@@ -52,8 +52,8 @@ var settings = [
   },
 ];
 var currWP = 0;
-var newWps = false;
-var newPoly = false;
+var newWps = true;
+var newPoly = true;
 var newLogs = false;
 var newCargo = true;
 var polys = [];
@@ -139,24 +139,24 @@ rosnodejs.initNode('telemetry_node')
         newLogs = true;
       });
   
-      let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
-        ll = []
-        data.poly.points.forEach(element => {
-          ll.push(cartToWGS84(element.x, element.y));
-        });
-        found = false
-        for (let index = 0; index < polys.length; index++) {
-          const element = polys[index];
-          if (element.id==data.id) {
-            element = ll
-            found = true
-          }
-        }
-        if (!found) {
-          polys.push(ll)
-        }
-        newPoly = true
-      });
+      // let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
+      //   ll = []
+      //   data.poly.points.forEach(element => {
+      //     ll.push(cartToWGS84(element.x, element.y));
+      //   });
+      //   found = false
+      //   for (let index = 0; index < polys.length; index++) {
+      //     const element = polys[index];
+      //     if (element.id==data.id) {
+      //       element = ll
+      //       found = true
+      //     }
+      //   }
+      //   if (!found) {
+      //     polys.push(ll)
+      //   }
+      //   newPoly = true
+      // });
   
       let subCargos = rosNode.subscribe("/posNavire", geometry_msgs.Pose2D, (data) => {
         cargos = [data];
@@ -176,7 +176,10 @@ rosnodejs.initNode('telemetry_node')
 
 io.on('connection', function (socket) {
   console.log("Some one connected !")
-
+  newWps = true;
+  newPoly = true;
+  newLogs = false;
+  newCargo = true;
   const wps_msg = new std_msgs.Float64MultiArray();
   socket.on('newMission', function (data) {
     waypoints = data; //sanitize here ?
@@ -232,7 +235,8 @@ io.on('connection', function (socket) {
   
   socket.on('userPolys', function(data) {
     var msgList = new controller_msg.UniquePolygonArray();
-    var list = []
+    var list = [];
+    polys = data;
     data.forEach(receivedPolygon => {    
       var msg = new controller_msg.UniquePolygon();
       var p = new geometry_msgs.Polygon();
@@ -274,18 +278,22 @@ io.on('connection', function (socket) {
   });
   socket.on("gotWP", function(data){
     newWps = false;
-    console.log("Comfirmed reception");
+    console.log("Comfirmed wp reception");
+  });
+  socket.on("gotPolys", function(data){
+    newPoly = false;
+    console.log("Comfirmed polys reception");
   });
   setInterval(function () {
     socket.broadcast.emit('state', state);
     socket.broadcast.emit('currentTarget', currWP);
     if (newWps) {
-      socket.broadcast.emit('staticWP', waypoints);
+      socket.emit('staticWP', waypoints);
       console.log("sent");
     }
     if (newPoly) {
-      socket.broadcast.emit('newPolys', polys)
-      newPoly = false;
+      socket.emit('newPolys', polys);
+      console.log("sent polys !");
     }
     if (newLogs) {
       logs.forEach(element => {

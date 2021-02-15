@@ -5,7 +5,6 @@ from scipy import interpolate
 from shapely.geometry import Point, MultiPoint, MultiPolygon, LineString
 from shapely.geometry.polygon import Polygon
 from scipy.spatial.distance import cdist
-import alphashape
 import pickle as pkl
 import matplotlib.pyplot as plt
 import pandas as pd
