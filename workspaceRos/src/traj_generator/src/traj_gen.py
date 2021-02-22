@@ -45,6 +45,7 @@ class TrajGenerator():
         # Coordonnées cartésiennes (x,y) du point final de la trajectoire du navire
         self.xf, self.yf = self.WGS84_to_cart(self.lonf, self.latf)
 
+
         self.x0 = 0
         self.y0 = 0
 
