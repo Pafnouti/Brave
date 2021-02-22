@@ -30,7 +30,7 @@ class AISSimulator():
     def _callback_traj_info(self, msg):
         """
         Lorsque les informations de trajectoire du navire à éviter sont envoyées sur le topic '/trajInfo', 
-        la fonction _callback_traj_info les récupère pour générer la trame AIVDM associée.
+        la fonction _callback_traj_info les récupère pour générer la trame AIVDM associée et la publier sur le topic /AIVDM
         """
 
         self.nb_sec = msg.nb_sec
@@ -39,6 +39,13 @@ class AISSimulator():
         self.vitesse_nd = msg.vitesse_nd
         self.heading = msg.heading
         self.imo = msg.imo
+
+        aivdm_dictionary = self.AIVDM_gen(self.nb_sec, self.latitude, self.longitude, self.vitesse_nd, self.heading, self.imo)
+        #print(aivdm_dictionary)
+
+        # On publie la trame AIVDM sous forme de String sur le topic '/AIVDM'
+        aivdm_msg = json.dumps(aivdm_dictionary) # converts dictionary into str
+        self.pub_aivdm.publish(aivdm_msg)
 
 
     def AIVDM_gen(self, nb_sec, lat, longi, v_nd, heading, imo):
@@ -95,25 +102,10 @@ class AISSimulator():
         return aivdm
 
 
-    def main(self):
-
-        nb_sec = self.nb_sec
-        lat = self.latitude
-        longi = self.longitude
-        v_nd = self.vitesse_nd
-        heading = self.heading
-        imo = self.imo
-        aivdm_dictionary = self.AIVDM_gen(nb_sec, lat, longi, v_nd, heading, imo)
-        print(aivdm_dictionary)
-
-        # On publie la trame AIVDM sous forme de String sur le topic '/AIVDM'
-        aivdm_msg = json.dumps(aivdm_dictionary) # converts dictionary into str
-        self.pub_aivdm.publish(aivdm_msg)
-
 
 if __name__ == "__main__":
     rospy.init_node('traj_generator', anonymous=True)
     ais_simulator = AISSimulator()
     while not rospy.is_shutdown():
-        ais_simulator.main()
+        #ais_simulator.main()
         ais_simulator.rate.sleep()
