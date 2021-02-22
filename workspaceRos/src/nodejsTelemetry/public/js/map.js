@@ -10,6 +10,7 @@ socket.on("staticWP", function(data) {
     currID = data.length;
     updateStaticWPList(data);
     updatePath();
+    socket.emit('gotWP', null);
 });
 
 socket.emit("getStaticWP");
@@ -67,22 +68,15 @@ var updateCargos = function() {
         map.removeLayer(element);
     });
     cargoMarkers.length = 0;
-    cargos.forEach(element => {
-        var clat = element.y*180./Math.PI/EARTH_RADIUS+state.lat0
-        var clon;
-        if (Math.abs(lat-90.) < EPSILON || Math.abs(lat+90.) < EPSILON)
-        {
-            clon = 0
-        } else {
-            clon = (element.x/EARTH_RADIUS)*(180./Math.PI)/Math.cos((Math.PI/180.)*(clat))+state.lon0
-        }
-        var movingCargo = new L.marker([clat, clon], {
+    for(var mmsi in cargos) {
+        element = cargos[mmsi];
+        var movingCargo = new L.marker([element.longitude, element.latitude], {
             icon: cargoIcon
         }).addTo(map);
-        var angle = element.theta;
+        var angle = element.heading/10;
         movingCargo.setRotationAngle(angle);
         cargoMarkers.push(movingCargo);
-    });
+     }
 }
 
 setInterval(function() {

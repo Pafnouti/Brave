@@ -1,0 +1,5 @@
+<launch> 
+	
+	<node name="router" pkg="node_router" type="node_router.py" output="screen"/>
+
+</launch>

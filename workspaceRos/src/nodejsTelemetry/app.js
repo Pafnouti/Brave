@@ -9,6 +9,7 @@ var path = require('path');
 var routes = require('./routes/index');
 var bodyParser = require('body-parser');
 const { stat } = require('fs');
+const { param } = require('./routes/index');
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -62,8 +63,9 @@ var newWps = true;
 var newPoly = true;
 var newLogs = false;
 var newCargo = true;
+var newParam = false;
 var polys = [];
-var cargos = [];
+var cargos = {};
 var logs = [];
 var allLogs = [];
 
@@ -101,6 +103,7 @@ rosnodejs.initNode('telemetry_node')
   .then((rosNode) => {
     rosnodejs.loadAllPackages().then( (e) => {
       controller_msg = rosnodejs.require('controller').msg;
+      traj_msg = rosnodejs.require('traj_generator').msg;
   
       // Create ROS subscriber on the 'chatter' topic expecting String messages
       let subState = rosNode.subscribe('/State', geometry_msgs.Pose2D,
@@ -145,27 +148,8 @@ rosnodejs.initNode('telemetry_node')
         newLogs = true;
       });
   
-      // let subPolys = rosNode.subscribe("/Poly", controller_msg.UniquePolygon, (data) => {
-      //   ll = []
-      //   data.poly.points.forEach(element => {
-      //     ll.push(cartToWGS84(element.x, element.y));
-      //   });
-      //   found = false
-      //   for (let index = 0; index < polys.length; index++) {
-      //     const element = polys[index];
-      //     if (element.id==data.id) {
-      //       element = ll
-      //       found = true
-      //     }
-      //   }
-      //   if (!found) {
-      //     polys.push(ll)
-      //   }
-      //   newPoly = true
-      // });
-  
-      let subCargos = rosNode.subscribe("/posNavire", geometry_msgs.Pose2D, (data) => {
-        cargos = [data];
+      let subCargos = rosNode.subscribe("/trajInfo", traj_msg.TrajInfo, (data) => {
+        cargos["" + data.imo] = data;
         newCargo = true;
       });
   
@@ -175,6 +159,17 @@ rosnodejs.initNode('telemetry_node')
       console.log(controller_msg.UniquePolygonArray);
       console.log(controller_msg.UniquePolygon);
       polys_pub = rosNode.advertise("/Polys", controller_msg.UniquePolygonArray);
+      rosNode.setParam("test", 1);
+      paramSet = rosNode.setParam;
+
+      setInterval(function () {
+        if(newParam) {
+          settings.forEach(element => {
+            rosNode.setParam(element.variable, element.value);
+          });
+          newParam = false;
+        }
+      }, 1000);
     }
     );
   });
@@ -220,9 +215,8 @@ io.on('connection', function (socket) {
   socket.on('newSettings', function (data) {
     settings = data; //sanitize here ?
     settings.forEach(element => {
-      rosnodejs.setParam(element.type, element.value);
+      paramSet(element.type, element.value);
     });
-    console.log(data);
     socket.broadcast.emit('settings', settings);
     newParam = true;
   });
@@ -275,6 +269,8 @@ io.on('connection', function (socket) {
 
     msgList.data = list;
     polys_pub.publish(msgList);
+
+
     /*if(data) {
     } else {
       wp_pub.publish(msg);
@@ -311,10 +307,7 @@ io.on('connection', function (socket) {
       newLogs = false;
     }
     if (newCargo) {
-      cargos.forEach(element => {
-        socket.broadcast.emit('cargos', element)
-      });
-      cargos = [];
+      socket.emit("cargos", cargos)
       newCargo = false;
     }
   }, 1000);

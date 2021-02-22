@@ -10,5 +10,5 @@
 
 	<node name="simulator" pkg="simulator_node" type="node.py" output="screen"/>
 	
-	<include file="$(find router)/launch/router.launch"/>
+	<include file="$(find node_router)/launch/node_router.launch"/>
 </launch>

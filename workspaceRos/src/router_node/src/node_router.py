@@ -12,7 +12,6 @@ from controller.msg import Line, Wind, UniquePolygonArray
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import Float64MultiArray, Int32, String
-from rcl_interfaces.srv import GetParameters
 
 
 

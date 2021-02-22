@@ -30,5 +30,5 @@ socket.on('state', function (newState) {
 
 socket.on('cargos', function (data) {
     //works if one cargo only
-    cargos = [data];
+    cargos = data;
 });

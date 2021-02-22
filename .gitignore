@@ -58,3 +58,5 @@ workspaceRos/.catkin_workspace
 
 # Main CMakeLists.txt
 /workspaceRos/src/CMakeLists.txt
+
+.vscode
