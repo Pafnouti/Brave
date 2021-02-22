@@ -492,8 +492,8 @@ if __name__ == "__main__":
     cercle_np = np.array(cercle)
 
     traj, iso = routeur.run(A, B)#, safe_zones=s_z)
-    for i in iso:
-        plt.scatter(i[:, 0], i[:, 1], s=4)
+    # for i in iso:
+    #     plt.scatter(i[:, 0], i[:, 1], s=4)
     for p_c in routeur.poly_cargos[:]:
         plt.plot(p_c[0], p_c[1])
 

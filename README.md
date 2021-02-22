@@ -47,6 +47,27 @@ They can be pip-installed.
  #brave's password : brave
  ```
 
+<<<<<<< HEAD
+ ## Launch the nodes
+ The folder workspaceRos/src/navigator_node/launch/ contains our entry points.
+  ```shell
+ $ roslaunch navigator_node main.launch
+ ```
+ 
+ **main.launch**
+ 
+ This file will launch all the nodes required to run on the sailboat.
+ 
+ **sim.launch**
+ 
+ This file will launch all the nodes required to run a simulated sailboat.
+ 
+  **debug.launch**
+  
+ This file will launch only the interface server.
+
+=======
+>>>>>>> upstream/master
  ## Router Node
  A Router is an algoithm that find the best trajectory for a sailboat. 
  There are many ways to do it, one of which uses isochrones. 
@@ -61,4 +82,8 @@ They can be pip-installed.
  To launch the node :
  '''shell
  $ roslaunch router router.launch
+<<<<<<< HEAD
  '''
+=======
+ '''
+>>>>>>> upstream/master
