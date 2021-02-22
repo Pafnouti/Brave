@@ -1,5 +1,39 @@
 # Brave
 
+## Dependencies
+The web interface requires [Node.js](https://nodejs.org/en/) to be installed. You can check [this website](https://nodejs.org/en/download/) to install Node.js.
+
+If the installation have been successful, you should be able to launch the following command :
+```shell
+ $ node -v
+ # We installed v12.20.1
+ ```
+
+In order to install the packages needed for the interface, navigate to */workspaceRos/src/nodejsTelemetry* and launch this command :
+```shell
+ $ npm install
+ ```
+
+ Python dependencies are :
+- numpy
+- scipy
+- shapely
+- pandas
+
+They can be pip-installed.
+
+ ## Launch the nodes
+ The folder workspaceRos/src/navigator_node/launch/ contains our entry points.
+  ```shell
+ $ roslaunch navigator_node main.launch
+ ```
+
+ | Launch file        | Usage           |
+| ------------- |:-------------:|
+|  **main.launch**     | This file will launch all the nodes required to run on the sailboat. |
+| **sim.launch**      | This file will launch all the nodes required to run a simulated sailboat.      |  
+| **debug.launch** | This file will launch only the interface server.      |   
+
 ## Connect to Brave 
 
 ### via Ethernet
@@ -13,6 +47,7 @@
  #brave's password : brave
  ```
 
+<<<<<<< HEAD
  ## Launch the nodes
  The folder workspaceRos/src/navigator_node/launch/ contains our entry points.
   ```shell
@@ -31,6 +66,8 @@
   
  This file will launch only the interface server.
 
+=======
+>>>>>>> upstream/master
  ## Router Node
  A Router is an algoithm that find the best trajectory for a sailboat. 
  There are many ways to do it, one of which uses isochrones. 
@@ -45,4 +82,8 @@
  To launch the node :
  '''shell
  $ roslaunch router router.launch
+<<<<<<< HEAD
  '''
+=======
+ '''
+>>>>>>> upstream/master

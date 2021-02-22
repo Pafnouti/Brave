@@ -1,12 +1,14 @@
 $("#navRouting").addClass("active")
-
+var haveSafeZone = false;
 var staticWaypoints = [];
 var polys = [];
 
 /// Socket.io
 socket.on("staticWP", function(data) {
+    console.log(data);
     currID = data.length;
     updateStaticWPList(data);
+    socket.emit('gotWP', null);
 });
 
 socket.emit("getStaticWP");
@@ -22,15 +24,28 @@ socket.on("currentTarget", function (data) {
 });
 
 socket.on("newPolys", function (data) {
-    var id = Number(data.data);
-    if(id && id != currWP) {
-        console.log(id);
-        staticWaypoints.forEach(element => {
-            element.marker.setIcon(new L.Icon.Default());
+    console.log(data);
+    polys.forEach(element => {
+        map.removeLayer(element);
+    });
+    polys.length = 0;
+    data.forEach(element => {
+        if(!element.isObstacle){
+            haveSafeZone = true;
+            $("#addPolygonEndSafe").attr("disabled", "true");
+        }
+        var p = L.polygon(element.latlng);
+        p.setStyle({color: element.isObstacle ? "red" : "green"});
+        polys.push({
+            polygon: p,
+            isObstacle: element.isObstacle,
+            id: polys[polys.length-1]==undefined ? 0 : polys[polys.length-1].id + 1
         });
-        staticWaypoints[id].marker.setIcon(targetIcon);
-        currWP = id;
-    }
+        p.bindTooltip("id : " + polys[polys.length-1].id, {permanent: false, direction:"center"}).openTooltip()
+    });
+    updatePolyList();
+
+    socket.emit('gotPolys', null);
 });
 
 const EPSILON = 0.00000000001
@@ -195,6 +210,8 @@ $('#addPolygonEndSafe').click(function (event) {
     currPoly.bindTooltip("id : " + polys[polys.length-1].id, {permanent: false, direction:"center"}).openTooltip()
     currPoly = undefined;
     $('#addPointsModal').collapse('hide');
+    haveSafeZone = true;
+    $("#addPolygonEndSafe").attr("disabled", "true");
     updatePolyList();
 });
 
@@ -242,7 +259,6 @@ $(".submitPolys").click(function (event) {
 
 
 var updateStaticWPList = function (wps) {
-    console.log(wps);
     //wps must contain an id and a latlong array at the bare minimum
     staticWaypoints.forEach(element => {
         if (element.marker) {
@@ -278,11 +294,17 @@ var updateStaticWPList = function (wps) {
 var updatePolyList = function() {
     $("#polyList").empty();
     polys.forEach(element => {
-        $("#polyList").append('<li class="list-group-item wpItem" id="' + element.id + '"> Polygon with ID : ' + element.id + '<button class="btn btn-danger deletePoly" id="deletePoly'+element.id+'" type="button">-</button></li>');
+        $("#polyList").append('<li class="list-group-item wpItem" id="' + element.id + '"> Polygon with ID : ' + element.id + ' <img src="images/'+ (element.isObstacle ? "redPoly" : "greenPoly") +'.png"> <button class="btn btn-danger deletePoly" id="deletePoly'+element.id+'" type="button">-</button></li>');
         $("#deletePoly"+element.id).click(function (event) {
             $(this).closest("li").remove();
-            polys.splice(polys.indexOf(element), 1);
+            console.log(element.isObstacle);
+            if(!element.isObstacle) {
+                console.log("safe zone delete");
+                haveSafeZone = false;
+                $("#addPolygonEndSafe").removeAttr("disabled");
+            }
             map.removeLayer(element.polygon);
+            polys.splice(polys.indexOf(element), 1);
         });
     });
     polys.forEach(element => {
