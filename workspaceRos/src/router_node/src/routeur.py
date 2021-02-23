@@ -200,7 +200,7 @@ class Routeur():
 
         return bnd
 
-    def sort_dist(self, points, A, B, coeff_min=0):
+    def sort_dist(self, points, A, B, coeff_min=0.8):
         #distances = np.dot(points[:, :2]-A, (B-A).T).flatten()
         #distances = cdist(A, points[:, :2]).flatten() - cdist(B, points[:, :2]).flatten()
         #distances = cdist(B, points[:, :2]).flatten()
@@ -212,10 +212,11 @@ class Routeur():
         d_min = distances.mean()*coeff_min
         
 
-        if False:
+        if d_min_ENABLED:
             i = 0
             while i < len(distances) and distances[i_d[i]] < d_min:
                 i += 1
+                # print(d_min, distances[i_d[i]] )
             return points[i_d[i:], :]
 
         
@@ -238,7 +239,7 @@ class Routeur():
         A = np.array((A[0], A[1])).reshape(1, -1)
         B = np.array((B[0], B[1])).reshape(1, -1)
            
-        points = self.sort_dist(points, A, B, coeff_min=0)
+        points = self.sort_dist(points, A, B, coeff_min=1)
 
         # on determine tous les angles entre les pts et A
         angles = np.arctan2(points[:, 1] - A[0, 1], points[:, 0] - A[0, 0]).reshape(-1, 1)%(2*np.pi)
@@ -248,11 +249,17 @@ class Routeur():
 
         points2 = np.zeros((1, 3))
 
-        angle_min, angle_m, angle_max = angles.min(), angles.mean(), angles.max()
-        if not angle_min < angle_m:
-            angle_min, angle_max = angle_max, angle_min
+        angleAB = np.arctan2(B[0, 1] - A[0, 1], B[0, 0] - A[0, 0])
+        angles2 = (angles+np.pi-angleAB)%(2*np.pi)
+        angle_min, angle_m, angle_max = min(angles2), np.mean(angles), max(angles2)
+        # print(angle_min, angle_m, angle_max)
+        angle_min, angle_max = (angle_min-np.pi+angleAB), (angle_max-np.pi+angleAB)
+        # if not angle_min < angle_m < angle_max: 
+        #     angle_max = angle_max - 2*np.pi
+        # print(angle_min, angle_m, angle_max)
 
         secteurs = np.linspace(angle_min, angle_max, nb_secteurs)
+        secteurs = secteurs%(2*np.pi)
 
 
         for i in range(nb_secteurs - 1):
@@ -296,6 +303,10 @@ class Routeur():
             plt.scatter(A[0, 0], A[0, 1])
             plt.scatter(B[0, 0], B[0, 1])
             plt.plot(*safe_zones.exterior.xy)
+            r = 500
+            # angles = [angles.min(), angles.max()]
+            for a in secteurs:
+                plt.plot((A[0, 0], A[0, 0]+r*np.cos(a)), (A[0, 1], A[0, 1]+r*np.sin(a)))
             plt.show()
             
         points = points2
@@ -304,7 +315,7 @@ class Routeur():
         return points
 
 
-    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=Polygon(), def_ang=40, nb_iso=10, nb_secteurs=200, cargos={'0':{'pos':(-100, -200), 'v':0, 'cap':0}}, ):
+    def run(self, A, B, no_go_zones=MultiPolygon(), safe_zones=Polygon(), def_ang=30, nb_iso=10, nb_secteurs=40, cargos={'0':{'pos':(-100, -200), 'v':0, 'cap':0}}, ):
         cout('Starting...')
 
         #pour debug : 
@@ -348,7 +359,7 @@ class Routeur():
         if safe_zones.is_empty:
             safe_zones = cercle
         safe_zones = safe_zones.intersection(cercle)
-        plt.plot(*safe_zones.exterior.xy)
+        # plt.plot(*safe_zones.exterior.xy)
         # le deuxième cercle sert pour généré les points, le premier, plus petit pour selectionner les lignes (cf alphashape)
         cercle_2 = []
         r2 = r*1.2
@@ -370,7 +381,7 @@ class Routeur():
         t_2 = []
         t_3 = []
 
-        if DEBUG:
+        if deep_DEBUG:
             if not no_go_zones.is_empty:
                 plt.plot(*no_go_zones.exterior.xy)
             if not safe_zones.is_empty:
@@ -472,28 +483,30 @@ if __name__ == "__main__":
 
     DEBUG = True
     deep_DEBUG = False
-    d_min_ENABLED = True
+    d_min_ENABLED = False
 
     #s_z = Polygon(((-50, 50), (-50, -400), (450, -400), (450, 50), (350, 50), (350, -300), (50, -300), (50, 50)))
 
     
     routeur = Routeur()
     #routeur.show_alpha()
-    #routeur.polaire_plot()
+    routeur.polaire_plot()
     A, B = (0, 0), (420, 20)
     plt.scatter((A[0], B[0]), (A[1], B[1]))
-    C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
-    cercle = []
-    r = distanceAB(A, B)/2*1.2
-    angles = np.linspace(0, 2*np.pi, 60)
-    for a in angles:
-        p = C[0]+r*np.cos(a), C[1]+r*np.sin(a)
-        cercle.append(p)
-    cercle_np = np.array(cercle)
+    # C = (A[0]+(A[0]+B[0])/2, A[1]+(A[1]+B[1])/2)
+    # cercle = []
+    # r = distanceAB(A, B)/2*1.2
+    # angles = np.linspace(0, 2*np.pi, 60)
+    # for a in angles:
+    #     p = C[0]+r*np.cos(a), C[1]+r*np.sin(a)
+    #     cercle.append(p)
+    # cercle_np = np.array(cercle)
 
     traj, iso = routeur.run(A, B)#, safe_zones=s_z)
-    # for i in iso:
-    #     plt.scatter(i[:, 0], i[:, 1], s=4)
+    j = len(iso)-1
+    for i in iso:
+        plt.plot(i[:, 0], i[:, 1], color=[(0.8/len(iso)*j +0.2),(0.8/len(iso)*j+0.2), (0.8/len(iso)*j+0.2)])
+        j -= 1
     for p_c in routeur.poly_cargos[:]:
         plt.plot(p_c[0], p_c[1])
 
