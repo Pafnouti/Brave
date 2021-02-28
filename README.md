@@ -57,11 +57,11 @@ Just open <http://192.168.0.55:3000> in a web browser on a device connected to t
  The algorithm determines where the sailboat can be at a given times.
 
  To launch the router alone :
- '''shell
+ ```shell
  $ python workspaceRos/src/router/src/router.py
- '''
+ ```
 
  To launch the node :
- '''shell
+ ```shell
  $ roslaunch router router.launch
- '''
+ ```
